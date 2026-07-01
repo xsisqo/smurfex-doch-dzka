@@ -1,4 +1,6 @@
 const key = "smurfex_dochadzka_records";
+const adminKey = "smurfex_admin_logged";
+const ADMIN_PIN = "2580";
 let lang = localStorage.getItem("smurfex_lang") || "sk";
 
 const t = {
@@ -12,6 +14,9 @@ const t = {
     startBtn:"PRIŠIEL SOM",
     endBtn:"ODCHÁDZAM",
     todayTitle:"Dnešné záznamy",
+    adminBtn:"Admin",
+    adminMode:"Administrátor",
+    logoutBtn:"Odhlásiť admina",
     exportBtn:"Export CSV",
     clearBtn:"Vymazať záznamy",
     noRecords:"Zatiaľ žiadne záznamy.",
@@ -21,7 +26,11 @@ const t = {
     end:"ODCHOD",
     site:"Stavba",
     noExport:"Nie sú žiadne záznamy.",
-    confirmClear:"Naozaj vymazať všetky záznamy v tomto mobile?"
+    confirmClear:"Naozaj vymazať všetky záznamy v tomto mobile?",
+    pinPrompt:"Zadaj administrátorský PIN:",
+    wrongPin:"Nesprávny PIN.",
+    adminLogged:"Admin režim zapnutý.",
+    adminLoggedOut:"Admin režim vypnutý."
   },
   en: {
     title:"Attendance",
@@ -33,6 +42,9 @@ const t = {
     startBtn:"I ARRIVED",
     endBtn:"I AM LEAVING",
     todayTitle:"Today's records",
+    adminBtn:"Admin",
+    adminMode:"Administrator",
+    logoutBtn:"Log out admin",
     exportBtn:"Export CSV",
     clearBtn:"Clear records",
     noRecords:"No records yet.",
@@ -42,9 +54,40 @@ const t = {
     end:"DEPARTURE",
     site:"Site",
     noExport:"There are no records.",
-    confirmClear:"Do you really want to delete all records on this phone?"
+    confirmClear:"Do you really want to delete all records on this phone?",
+    pinPrompt:"Enter administrator PIN:",
+    wrongPin:"Wrong PIN.",
+    adminLogged:"Admin mode enabled.",
+    adminLoggedOut:"Admin mode disabled."
   }
 };
+
+function isAdmin(){return localStorage.getItem(adminKey) === "yes"}
+
+function updateAdminView(){
+  const login = document.getElementById("admin-login");
+  const panel = document.getElementById("admin-panel");
+  if(!login || !panel) return;
+  login.style.display = isAdmin() ? "none" : "block";
+  panel.style.display = isAdmin() ? "block" : "none";
+}
+
+function adminLogin(){
+  const pin = prompt(t[lang].pinPrompt);
+  if(pin === ADMIN_PIN){
+    localStorage.setItem(adminKey, "yes");
+    document.getElementById("status").innerText = t[lang].adminLogged;
+    updateAdminView();
+  } else if(pin !== null){
+    alert(t[lang].wrongPin);
+  }
+}
+
+function adminLogout(){
+  localStorage.removeItem(adminKey);
+  document.getElementById("status").innerText = t[lang].adminLoggedOut;
+  updateAdminView();
+}
 
 function setLang(l){
   lang = l;
@@ -58,6 +101,7 @@ function setLang(l){
   });
   document.getElementById("btn-sk").classList.toggle("active", lang === "sk");
   document.getElementById("btn-en").classList.toggle("active", lang === "en");
+  updateAdminView();
   renderRecords();
 }
 
@@ -98,6 +142,7 @@ function renderRecords(){
 }
 
 function exportCSV(){
+  if(!isAdmin()){adminLogin(); return;}
   const records = loadRecords();
   if(records.length === 0){alert(t[lang].noExport);return}
   const header = "Date;Time;Worker;Site;Type\n";
@@ -112,6 +157,7 @@ function exportCSV(){
 }
 
 function clearRecords(){
+  if(!isAdmin()){adminLogin(); return;}
   if(confirm(t[lang].confirmClear)){
     localStorage.removeItem(key);
     renderRecords();

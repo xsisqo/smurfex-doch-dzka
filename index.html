@@ -39,8 +39,17 @@
     <section class="card">
       <h2 data-i18n="todayTitle">Dnešné záznamy</h2>
       <div id="records"></div>
-      <button class="small" onclick="exportCSV()" data-i18n="exportBtn">Export CSV</button>
-      <button class="small danger" onclick="clearRecords()" data-i18n="clearBtn">Vymazať záznamy</button>
+
+      <div id="admin-login">
+        <button class="small" onclick="adminLogin()" data-i18n="adminBtn">Admin</button>
+      </div>
+
+      <div id="admin-panel" style="display:none;">
+        <p><b data-i18n="adminMode">Administrátor</b></p>
+        <button class="small" onclick="exportCSV()" data-i18n="exportBtn">Export CSV</button>
+        <button class="small danger" onclick="clearRecords()" data-i18n="clearBtn">Vymazať záznamy</button>
+        <button class="small" onclick="adminLogout()" data-i18n="logoutBtn">Odhlásiť admina</button>
+      </div>
     </section>
   </main>
 
