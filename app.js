@@ -76,6 +76,10 @@ const t = {
     online:"Online databáza pripojená.",
     saving:"Ukladám...",
     saveError:"Chyba uloženia. Skontroluj internet alebo Firestore pravidlá.",
+    gpsGetting:"Získavam GPS polohu...",
+    gpsError:"GPS poloha je povinná. Povoľ polohu v prehliadači a skús znova.",
+    map:"Otvoriť mapu",
+    location:"GPS poloha",
     inWork:"V práci",
     left:"Odišiel",
     noToday:"Dnes zatiaľ nikto nezapísal dochádzku.",
@@ -113,6 +117,10 @@ const t = {
     online:"Online database connected.",
     saving:"Saving...",
     saveError:"Save error. Check internet or Firestore rules.",
+    gpsGetting:"Getting GPS location...",
+    gpsError:"GPS location is required. Allow location in the browser and try again.",
+    map:"Open map",
+    location:"GPS location",
     inWork:"At work",
     left:"Left",
     noToday:"No attendance records today yet.",
@@ -211,12 +219,42 @@ function adminLogout(){
   renderRecords();
 }
 
+function getLocation(){
+  return new Promise((resolve, reject) => {
+    if(!navigator.geolocation){
+      reject(new Error("Geolocation not supported"));
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      pos => resolve({
+        lat: pos.coords.latitude,
+        lng: pos.coords.longitude,
+        accuracy: Math.round(pos.coords.accuracy || 0),
+        mapUrl: `https://www.google.com/maps?q=${pos.coords.latitude},${pos.coords.longitude}`
+      }),
+      err => reject(err),
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+    );
+  });
+}
+
 async function saveRecord(type){
   const worker = document.getElementById("worker").value.trim();
   const site = document.getElementById("site").value.trim();
   const pin = document.getElementById("workerPin") ? document.getElementById("workerPin").value.trim() : "";
   if(!worker || !site || !pin){alert(t[lang].fillAlert);return;}
   if(WORKER_PINS[worker] !== pin){alert(t[lang].wrongWorkerPin);return;}
+
+  document.getElementById("status").innerText = t[lang].gpsGetting;
+  let gps;
+  try{
+    gps = await getLocation();
+  }catch(e){
+    console.error(e);
+    alert(t[lang].gpsError);
+    document.getElementById("status").innerText = t[lang].gpsError;
+    return;
+  }
 
   const now = new Date();
   const record = {
@@ -227,6 +265,10 @@ async function saveRecord(type){
     pracovnik: worker,
     stavba: site,
     typ: type,
+    latitude: gps.lat,
+    longitude: gps.lng,
+    accuracy: gps.accuracy,
+    mapUrl: gps.mapUrl,
     createdAt: firebase.firestore.FieldValue.serverTimestamp()
   };
 
@@ -345,16 +387,17 @@ function renderRecords(){
     <div class="record">
       <b>${t[lang][r.typ] || r.typ}</b> – ${r.pracovnik || ""}<br>
       ${r.datum || ""} ${r.cas || ""}<br>
-      ${t[lang].site}: ${r.stavba || ""}
+      ${t[lang].site}: ${r.stavba || ""}<br>
+      ${r.mapUrl ? `${t[lang].location}: <a href="${r.mapUrl}" target="_blank" rel="noopener">${t[lang].map}</a> (${r.accuracy || "?"} m)` : ""}
     </div>`).join("");
 }
 
 function exportCSV(){
   if(!isAdmin) return;
   if(currentRecords.length === 0){alert(t[lang].noExport);return;}
-  const header = "Date;Time;Worker;Site;Type\n";
+  const header = "Date;Time;Worker;Site;Type;Latitude;Longitude;Accuracy;Map\n";
   const rows = currentRecords.map(r =>
-    `${r.datum || ""};${r.cas || ""};${r.pracovnik || ""};${r.stavba || ""};${t.en[r.typ] || r.typ || ""}`
+    `${r.datum || ""};${r.cas || ""};${r.pracovnik || ""};${r.stavba || ""};${t.en[r.typ] || r.typ || ""};${r.latitude || ""};${r.longitude || ""};${r.accuracy || ""};${r.mapUrl || ""}`
   ).join("\n");
   const blob = new Blob([header + rows], {type:"text/csv;charset=utf-8"});
   const url = URL.createObjectURL(blob);
