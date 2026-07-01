@@ -20,13 +20,13 @@
       </div>
 
       <h1 data-i18n="title">Dochádzka</h1>
-      <p class="sub" data-i18n="subtitle">Jednoduchá evidencia príchodu a odchodu</p>
+      <p class="sub" data-i18n="subtitle">Online evidencia príchodu a odchodu</p>
 
-      <label data-i18n="workerLabel">Meno pracovníka</label>
-      <input id="worker" data-i18n-placeholder="workerPlaceholder" placeholder="napr. Ján Novák">
+      <label data-i18n="workerLabel">Pracovník</label>
+      <select id="worker"></select>
 
       <label data-i18n="siteLabel">Stavba</label>
-      <input id="site" data-i18n-placeholder="sitePlaceholder" placeholder="napr. STRABAG / Nitra">
+      <select id="site"></select>
 
       <div class="buttons">
         <button class="start" onclick="saveRecord('start')" data-i18n="startBtn">PRIŠIEL SOM</button>
@@ -43,7 +43,7 @@
       <button class="small danger" onclick="adminLogout()" id="adminLogoutBtn" style="display:none" data-i18n="adminLogoutBtn">Odhlásiť admina</button>
 
       <div id="adminPanel" style="display:none">
-        <h2 data-i18n="todayTitle">Dnešné záznamy</h2>
+        <h2 data-i18n="todayTitle">Všetky záznamy</h2>
         <div id="records"></div>
         <button class="small" onclick="exportCSV()" data-i18n="exportBtn">Export CSV</button>
         <button class="small danger" onclick="clearRecords()" data-i18n="clearBtn">Vymazať záznamy</button>

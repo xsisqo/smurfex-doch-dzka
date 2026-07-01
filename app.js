@@ -5,6 +5,21 @@ let isAdmin = localStorage.getItem("smurfex_admin") === "1";
 let currentRecords = [];
 let unsubscribeRecords = null;
 
+const WORKERS = [
+  "Mohit Kumar",
+  "Gurwinder Singh",
+  "Pradip Majumder",
+  "Jatinder Singh",
+  "Vlado Hatala",
+  "Fero Maslík",
+  "Milan Sedliak"
+];
+
+const SITES = [
+  "STRABAG letisko",
+  "STRABAG nemocnica"
+];
+
 const firebaseConfig = {
   apiKey: "AIzaSyD972-SyhAtPi7keb-ivBB3FmAsahuHfs8",
   authDomain: "smurfex-dochadzka.firebaseapp.com",
@@ -23,17 +38,17 @@ const t = {
   sk: {
     title:"Dochádzka",
     subtitle:"Online evidencia príchodu a odchodu",
-    workerLabel:"Meno pracovníka",
-    workerPlaceholder:"napr. Ján Novák",
+    workerLabel:"Pracovník",
+    workerPlaceholder:"Vyber pracovníka",
     siteLabel:"Stavba",
-    sitePlaceholder:"napr. STRABAG / Nitra",
+    sitePlaceholder:"Vyber stavbu",
     startBtn:"PRIŠIEL SOM",
     endBtn:"ODCHÁDZAM",
     todayTitle:"Všetky záznamy",
     exportBtn:"Export CSV",
     clearBtn:"Vymazať záznamy",
     noRecords:"Zatiaľ žiadne záznamy.",
-    fillAlert:"Vyplň meno pracovníka aj stavbu.",
+    fillAlert:"Vyber pracovníka aj stavbu.",
     saved:"uložený online",
     start:"PRÍCHOD",
     end:"ODCHOD",
@@ -51,17 +66,17 @@ const t = {
   en: {
     title:"Attendance",
     subtitle:"Online check-in and check-out record",
-    workerLabel:"Worker name",
-    workerPlaceholder:"e.g. John Smith",
+    workerLabel:"Worker",
+    workerPlaceholder:"Select worker",
     siteLabel:"Construction site",
-    sitePlaceholder:"e.g. STRABAG / Nitra",
+    sitePlaceholder:"Select site",
     startBtn:"I ARRIVED",
     endBtn:"I AM LEAVING",
     todayTitle:"All records",
     exportBtn:"Export CSV",
     clearBtn:"Clear records",
     noRecords:"No records yet.",
-    fillAlert:"Fill in worker name and construction site.",
+    fillAlert:"Select worker and construction site.",
     saved:"saved online",
     start:"ARRIVAL",
     end:"DEPARTURE",
@@ -78,6 +93,24 @@ const t = {
   }
 };
 
+function fillSelects(){
+  const workerSelect = document.getElementById("worker");
+  const siteSelect = document.getElementById("site");
+  if(!workerSelect || !siteSelect) return;
+
+  const selectedWorker = workerSelect.value;
+  const selectedSite = siteSelect.value;
+
+  workerSelect.innerHTML = `<option value="">${t[lang].workerPlaceholder}</option>` +
+    WORKERS.map(name => `<option value="${name}">${name}</option>`).join("");
+
+  siteSelect.innerHTML = `<option value="">${t[lang].sitePlaceholder}</option>` +
+    SITES.map(site => `<option value="${site}">${site}</option>`).join("");
+
+  if(selectedWorker) workerSelect.value = selectedWorker;
+  if(selectedSite) siteSelect.value = selectedSite;
+}
+
 function setLang(l){
   lang = l;
   localStorage.setItem("smurfex_lang", lang);
@@ -90,6 +123,7 @@ function setLang(l){
   });
   document.getElementById("btn-sk").classList.toggle("active", lang === "sk");
   document.getElementById("btn-en").classList.toggle("active", lang === "en");
+  fillSelects();
   renderAdminState();
   renderRecords();
 }
@@ -180,10 +214,12 @@ function renderRecords(){
 function exportCSV(){
   if(!isAdmin) return;
   if(currentRecords.length === 0){alert(t[lang].noExport);return}
-  const header = "Date;Time;Worker;Site;Type\n";
+  const header = "Date;Time;Worker;Site;Type
+";
   const rows = currentRecords.map(r =>
     `${r.datum || ""};${r.cas || ""};${r.pracovnik || ""};${r.stavba || ""};${t.en[r.typ] || r.typ || ""}`
-  ).join("\n");
+  ).join("
+");
   const blob = new Blob([header + rows], {type:"text/csv;charset=utf-8"});
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
