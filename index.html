@@ -22,6 +22,12 @@
       text-align: center;
       font-weight: 700;
     }
+    textarea {
+      width: 100%;
+      min-height: 90px;
+      resize: vertical;
+      box-sizing: border-box;
+    }
   </style>
 </head>
 <body>
@@ -58,12 +64,36 @@
       <p id="syncStatus" class="sub"></p>
     </section>
 
+
+
+    <section class="card">
+      <h2 data-i18n="requestTitle">Požiadavka pre admina</h2>
+      <p class="sub" data-i18n="requestHint">Ak potrebuješ materiál, náradie alebo máš inú požiadavku, napíš ju sem.</p>
+
+      <label data-i18n="requestTypeLabel">Typ požiadavky</label>
+      <select id="requestType">
+        <option value="material" data-i18n="requestMaterial">Materiál</option>
+        <option value="tool" data-i18n="requestTool">Náradie</option>
+        <option value="transport" data-i18n="requestTransport">Doprava</option>
+        <option value="other" data-i18n="requestOther">Iné</option>
+      </select>
+
+      <label data-i18n="requestTextLabel">Text požiadavky</label>
+      <textarea id="requestText" data-i18n-placeholder="requestTextPlaceholder" placeholder="Napr. potrebujeme sadrokartón, skrutky, penu, kotúče..."></textarea>
+
+      <button class="small" onclick="sendWorkerRequest()" data-i18n="sendRequestBtn">Odoslať požiadavku</button>
+      <p id="requestStatus" class="sub"></p>
+    </section>
+
     <section class="card">
       <h2 data-i18n="adminTitle">Administrátor</h2>
       <button class="small" onclick="adminLogin()" id="adminLoginBtn" data-i18n="adminLoginBtn">Admin prihlásenie</button>
       <button class="small danger" onclick="adminLogout()" id="adminLogoutBtn" style="display:none" data-i18n="adminLogoutBtn">Odhlásiť admina</button>
 
       <div id="adminPanel" style="display:none">
+        <h2 data-i18n="adminRequestsTitle">Požiadavky pracovníkov</h2>
+        <div id="adminRequests"></div>
+
         <h2 data-i18n="notificationsTitle">Posledné udalosti</h2>
         <div id="notifications"></div>
 
@@ -136,6 +166,6 @@
 
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
-  <script src="app.js?v=notice-final-2"></script>
+  <script src="app.js?v=requests-1"></script>
 </body>
 </html>

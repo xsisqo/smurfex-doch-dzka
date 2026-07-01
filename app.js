@@ -3,7 +3,9 @@ const key = "smurfex_dochadzka_records_backup";
 let lang = localStorage.getItem("smurfex_lang") || "sk";
 let isAdmin = localStorage.getItem("smurfex_admin") === "1";
 let currentRecords = [];
+let currentRequests = [];
 let unsubscribeRecords = null;
+let unsubscribeRequests = null;
 
 const WORKERS = [
   "Mohit Kumar",
@@ -43,12 +45,31 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 const recordsCol = db.collection("records");
+const requestsCol = db.collection("requests");
 
 const t = {
   sk: {
     title:"Dochádzka",
     subtitle:"Online evidencia príchodu a odchodu",
     attendanceNotice:"⚠️ Dochádzku zaznamenávajte až po fyzickom príchode na pracovisko. Prihlásenie mimo stavby nie je povolené. Výnimku majú šoféri a pracovníci vykonávajúci dopravu.",
+    requestTitle:"Požiadavka pre admina",
+    requestHint:"Ak potrebuješ materiál, náradie alebo máš inú požiadavku, napíš ju sem.",
+    requestTypeLabel:"Typ požiadavky",
+    requestMaterial:"Materiál",
+    requestTool:"Náradie",
+    requestTransport:"Doprava",
+    requestOther:"Iné",
+    requestTextLabel:"Text požiadavky",
+    requestTextPlaceholder:"Napr. potrebujeme sadrokartón, skrutky, penu, kotúče...",
+    sendRequestBtn:"Odoslať požiadavku",
+    requestSent:"Požiadavka bola odoslaná adminovi.",
+    requestFill:"Vyber pracovníka, stavbu, zadaj PIN a napíš požiadavku.",
+    requestError:"Požiadavku sa nepodarilo odoslať.",
+    adminRequestsTitle:"Požiadavky pracovníkov",
+    noRequests:"Zatiaľ nie sú žiadne požiadavky.",
+    markDone:"Vybavené",
+    requestStatusOpen:"Čaká",
+    requestStatusDone:"Vybavené",
     workerLabel:"Pracovník",
     workerPlaceholder:"Vyber pracovníka",
     pinLabel:"PIN pracovníka",
@@ -136,6 +157,24 @@ const t = {
     title:"Attendance",
     subtitle:"Online check-in and check-out record",
     attendanceNotice:"⚠️ Please record attendance only after physically arriving at the workplace. Attendance registration outside the construction site is not permitted. Drivers and transport personnel are exempt.",
+    requestTitle:"Request for admin",
+    requestHint:"If you need material, tools or anything else, write the request here.",
+    requestTypeLabel:"Request type",
+    requestMaterial:"Material",
+    requestTool:"Tools",
+    requestTransport:"Transport",
+    requestOther:"Other",
+    requestTextLabel:"Request text",
+    requestTextPlaceholder:"E.g. we need plasterboard, screws, foam, cutting discs...",
+    sendRequestBtn:"Send request",
+    requestSent:"The request has been sent to admin.",
+    requestFill:"Select worker, site, enter PIN and write the request.",
+    requestError:"The request could not be sent.",
+    adminRequestsTitle:"Worker requests",
+    noRequests:"No requests yet.",
+    markDone:"Done",
+    requestStatusOpen:"Open",
+    requestStatusDone:"Done",
     workerLabel:"Worker",
     workerPlaceholder:"Select worker",
     pinLabel:"Worker PIN",
@@ -324,6 +363,8 @@ function setLang(l){
   document.getElementById("btn-en").classList.toggle("active", lang === "en");
   fillSelects();
   renderAdminState();
+  fillRequestTypeTexts();
+  renderAdminRequests();
   renderNotifications();
   renderNotifications();
   renderDashboard();
@@ -342,7 +383,7 @@ function renderAdminState(){
   adminPanel.style.display = isAdmin ? "block" : "none";
   adminLoginBtn.style.display = isAdmin ? "none" : "inline-block";
   adminLogoutBtn.style.display = isAdmin ? "inline-block" : "none";
-  if(isAdmin) startAdminListener();
+  if(isAdmin){ startAdminListener(); startRequestListener(); }
 }
 
 function adminLogin(){
@@ -363,14 +404,109 @@ function adminLogout(){
     unsubscribeRecords();
     unsubscribeRecords = null;
   }
+  if(unsubscribeRequests){
+    unsubscribeRequests();
+    unsubscribeRequests = null;
+  }
   currentRecords = [];
+  currentRequests = [];
   renderAdminState();
+  fillRequestTypeTexts();
+  renderAdminRequests();
   renderNotifications();
   renderDashboard();
   renderSiteDashboard();
   renderRecords();
 }
 
+
+function fillRequestTypeTexts(){
+  const type = document.getElementById("requestType");
+  if(type){
+    const selected = type.value || "material";
+    type.innerHTML = `
+      <option value="material">${t[lang].requestMaterial}</option>
+      <option value="tool">${t[lang].requestTool}</option>
+      <option value="transport">${t[lang].requestTransport}</option>
+      <option value="other">${t[lang].requestOther}</option>`;
+    type.value = selected;
+  }
+}
+
+async function sendWorkerRequest(){
+  const worker = document.getElementById("worker") ? document.getElementById("worker").value.trim() : "";
+  const site = document.getElementById("site") ? document.getElementById("site").value.trim() : "";
+  const pin = document.getElementById("workerPin") ? document.getElementById("workerPin").value.trim() : "";
+  const type = document.getElementById("requestType") ? document.getElementById("requestType").value : "other";
+  const textEl = document.getElementById("requestText");
+  const text = textEl ? textEl.value.trim() : "";
+  const status = document.getElementById("requestStatus");
+
+  if(!worker || !site || !pin || !text){ alert(t[lang].requestFill); return; }
+  if(WORKER_PINS[worker] !== pin){ alert(t[lang].wrongWorkerPin); return; }
+
+  const now = new Date();
+  const request = {
+    pracovnik: worker,
+    stavba: site,
+    typ: type,
+    text: text,
+    status: "open",
+    datum: now.toLocaleDateString("sk-SK"),
+    cas: now.toLocaleTimeString("sk-SK", {hour:"2-digit", minute:"2-digit"}),
+    dateISO: now.toISOString().slice(0,10),
+    createdAtLocal: now.toISOString(),
+    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+  };
+
+  try{
+    await requestsCol.add(request);
+    if(textEl) textEl.value = "";
+    if(status) status.innerText = t[lang].requestSent;
+  }catch(e){
+    console.error(e);
+    alert(t[lang].requestError);
+    if(status) status.innerText = t[lang].requestError;
+  }
+}
+
+function startRequestListener(){
+  if(unsubscribeRequests) return;
+  unsubscribeRequests = requestsCol.orderBy("createdAtLocal", "desc").onSnapshot(snapshot => {
+    currentRequests = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    renderAdminRequests();
+  }, err => {
+    console.error(err);
+  });
+}
+
+function requestTypeText(type){
+  if(type === "material") return t[lang].requestMaterial;
+  if(type === "tool") return t[lang].requestTool;
+  if(type === "transport") return t[lang].requestTransport;
+  return t[lang].requestOther;
+}
+
+function renderAdminRequests(){
+  const box = document.getElementById("adminRequests");
+  if(!box) return;
+  if(!isAdmin){ box.innerHTML = ""; return; }
+  if(currentRequests.length === 0){ box.innerHTML = `<p>${t[lang].noRequests}</p>`; return; }
+  box.innerHTML = currentRequests.slice(0, 20).map(r => `
+    <div class="record">
+      <b>${r.status === "done" ? "✅" : "🟡"} ${requestTypeText(r.typ)}</b> — ${r.pracovnik || ""}<br>
+      ${r.datum || ""} ${r.cas || ""}<br>
+      ${t[lang].site}: ${r.stavba || ""}<br>
+      <p>${(r.text || "").replace(/</g,"&lt;").replace(/>/g,"&gt;")}</p>
+      <b>${r.status === "done" ? t[lang].requestStatusDone : t[lang].requestStatusOpen}</b>
+      ${r.status !== "done" ? `<br><button class="small" onclick="markRequestDone('${r.id}')">${t[lang].markDone}</button>` : ""}
+    </div>`).join("");
+}
+
+async function markRequestDone(id){
+  if(!isAdmin || !id) return;
+  await requestsCol.doc(id).update({ status:"done", doneAtLocal:new Date().toISOString() });
+}
 
 function readPhotoBase64(){
   return new Promise((resolve, reject) => {
@@ -497,6 +633,7 @@ function startAdminListener(){
     document.getElementById("syncStatus").innerText = t[lang].online;
     renderNotifications();
     renderDashboard();
+    renderSiteDashboard();
     renderRecords();
     renderMonthlyReport(false);
     renderWorkerCalendar(false);
@@ -928,5 +1065,6 @@ if("serviceWorker" in navigator){
 
 ensurePinInput();
 fillSelects();
+fillRequestTypeTexts();
 setLang(lang);
 renderAdminState();
