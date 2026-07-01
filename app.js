@@ -48,6 +48,7 @@ const t = {
   sk: {
     title:"Dochádzka",
     subtitle:"Online evidencia príchodu a odchodu",
+    attendanceNotice:"⚠️ Dochádzku zaznamenávajte až po fyzickom príchode na pracovisko. Prihlásenie mimo stavby nie je povolené. Výnimku majú šoféri a pracovníci vykonávajúci dopravu.",
     workerLabel:"Pracovník",
     workerPlaceholder:"Vyber pracovníka",
     pinLabel:"PIN pracovníka",
@@ -134,6 +135,7 @@ const t = {
   en: {
     title:"Attendance",
     subtitle:"Online check-in and check-out record",
+    attendanceNotice:"⚠️ Please record attendance only after physically arriving at the workplace. Attendance registration outside the construction site is not permitted. Drivers and transport personnel are exempt.",
     workerLabel:"Worker",
     workerPlaceholder:"Select worker",
     pinLabel:"Worker PIN",
