@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="sk">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Smurfex Dochádzka</title>
+  <meta name="theme-color" content="#56b9e8">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icon-192.png">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="app">
+    <section class="card">
+      <img src="logo.png" class="logo" alt="Smurfex s.r.o.">
+      <h1>Dochádzka</h1>
+      <p class="sub">Jednoduchá evidencia príchodu a odchodu</p>
+
+      <label>Meno pracovníka</label>
+      <input id="worker" placeholder="napr. Ján Novák">
+
+      <label>Stavba</label>
+      <input id="site" placeholder="napr. STRABAG / Nitra">
+
+      <div class="buttons">
+        <button class="start" onclick="saveRecord('PRÍCHOD')">PRIŠIEL SOM</button>
+        <button class="end" onclick="saveRecord('ODCHOD')">ODCHÁDZAM</button>
+      </div>
+
+      <p id="status"></p>
+    </section>
+
+    <section class="card">
+      <h2>Dnešné záznamy</h2>
+      <div id="records"></div>
+      <button class="small" onclick="exportCSV()">Export CSV</button>
+      <button class="small danger" onclick="clearRecords()">Vymazať záznamy</button>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
