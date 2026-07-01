@@ -45,6 +45,22 @@
       <div id="adminPanel" style="display:none">
         <h2 data-i18n="dashboardTitle">Živý prehľad dnes</h2>
         <div id="dashboard"></div>
+        <h2 data-i18n="reportTitle">Mesačný výkaz</h2>
+        <div class="record">
+          <label data-i18n="reportWorker">Pracovník pre výkaz</label>
+          <select id="reportWorker"></select>
+
+          <label data-i18n="reportMonth">Mesiac</label>
+          <input id="reportMonth" type="month">
+
+          <div class="buttons">
+            <button class="small" onclick="renderMonthlyReport()" data-i18n="showReportBtn">Zobraziť výkaz</button>
+            <button class="small" onclick="printMonthlyReport()" data-i18n="pdfReportBtn">PDF výkaz</button>
+            <button class="small" onclick="exportMonthlyCSV()" data-i18n="csvReportBtn">CSV výkaz</button>
+          </div>
+          <div id="monthlyReport"></div>
+        </div>
+
         <h2 data-i18n="todayTitle">Všetky záznamy</h2>
         <div id="records"></div>
         <button class="small" onclick="exportCSV()" data-i18n="exportBtn">Export CSV</button>

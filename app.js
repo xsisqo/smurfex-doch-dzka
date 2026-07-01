@@ -84,7 +84,21 @@ const t = {
     left:"Odišiel",
     noToday:"Dnes zatiaľ nikto nezapísal dochádzku.",
     hoursToday:"Dnes",
-    lastTime:"Posledný čas"
+    lastTime:"Posledný čas",
+    reportTitle:"Mesačný výkaz",
+    reportWorker:"Pracovník pre výkaz",
+    reportMonth:"Mesiac",
+    showReportBtn:"Zobraziť výkaz",
+    pdfReportBtn:"PDF výkaz",
+    csvReportBtn:"CSV výkaz",
+    allWorkers:"Všetci pracovníci",
+    totalHours:"Spolu hodín",
+    reportDays:"Počet dní",
+    reportNoData:"Pre vybraný mesiac nie sú záznamy.",
+    reportGenerated:"Výkaz vygenerovaný",
+    arrival:"Príchod",
+    departure:"Odchod",
+    duration:"Trvanie"
   },
   en: {
     title:"Attendance",
@@ -125,7 +139,21 @@ const t = {
     left:"Left",
     noToday:"No attendance records today yet.",
     hoursToday:"Today",
-    lastTime:"Last time"
+    lastTime:"Last time",
+    reportTitle:"Monthly report",
+    reportWorker:"Worker for report",
+    reportMonth:"Month",
+    showReportBtn:"Show report",
+    pdfReportBtn:"PDF report",
+    csvReportBtn:"CSV report",
+    allWorkers:"All workers",
+    totalHours:"Total hours",
+    reportDays:"Days",
+    reportNoData:"No records for selected month.",
+    reportGenerated:"Report generated",
+    arrival:"Arrival",
+    departure:"Departure",
+    duration:"Duration"
   }
 };
 
@@ -145,6 +173,19 @@ function fillSelects(){
 
   if(selectedWorker) workerSelect.value = selectedWorker;
   if(selectedSite) siteSelect.value = selectedSite;
+
+  const reportWorker = document.getElementById("reportWorker");
+  if(reportWorker){
+    const selectedReportWorker = reportWorker.value;
+    reportWorker.innerHTML = `<option value="">${t[lang].allWorkers}</option>` +
+      WORKERS.map(name => `<option value="${name}">${name}</option>`).join("");
+    if(selectedReportWorker) reportWorker.value = selectedReportWorker;
+  }
+
+  const reportMonth = document.getElementById("reportMonth");
+  if(reportMonth && !reportMonth.value){
+    reportMonth.value = new Date().toISOString().slice(0,7);
+  }
 }
 
 function ensurePinInput(){
@@ -181,6 +222,7 @@ function setLang(l){
   renderAdminState();
   renderDashboard();
   renderRecords();
+  renderMonthlyReport(false);
 }
 
 function renderAdminState(){
@@ -293,6 +335,7 @@ function startAdminListener(){
     document.getElementById("syncStatus").innerText = t[lang].online;
     renderDashboard();
     renderRecords();
+    renderMonthlyReport(false);
   }, err => {
     console.error(err);
     document.getElementById("syncStatus").innerText = "Firestore error";
@@ -390,6 +433,121 @@ function renderRecords(){
       ${t[lang].site}: ${r.stavba || ""}<br>
       ${r.mapUrl ? `${t[lang].location}: <a href="${r.mapUrl}" target="_blank" rel="noopener">${t[lang].map}</a> (${r.accuracy || "?"} m)` : ""}
     </div>`).join("");
+}
+
+
+function getReportRecords(){
+  const worker = document.getElementById("reportWorker") ? document.getElementById("reportWorker").value : "";
+  const month = document.getElementById("reportMonth") ? document.getElementById("reportMonth").value : new Date().toISOString().slice(0,7);
+  const records = currentRecords
+    .filter(r => !worker || r.pracovnik === worker)
+    .filter(r => (r.dateISO || "").slice(0,7) === month)
+    .slice()
+    .sort((a,b) => (a.createdAtLocal || "").localeCompare(b.createdAtLocal || ""));
+  return { worker, month, records };
+}
+
+function buildMonthlyPairs(records){
+  const open = {};
+  const rows = [];
+  records.forEach(r => {
+    const w = r.pracovnik || "";
+    if(r.typ === "start"){
+      open[w] = r;
+    }
+    if(r.typ === "end"){
+      const start = open[w];
+      const mins = start ? minutesBetween(start.createdAtLocal, r.createdAtLocal) : 0;
+      rows.push({
+        worker: w,
+        site: r.stavba || (start ? start.stavba : ""),
+        date: r.dateISO || (r.datum || ""),
+        startTime: start ? (start.cas || "") : "-",
+        endTime: r.cas || "",
+        minutes: mins
+      });
+      open[w] = null;
+    }
+  });
+  Object.keys(open).forEach(w => {
+    const start = open[w];
+    if(start){
+      rows.push({
+        worker: w,
+        site: start.stavba || "",
+        date: start.dateISO || (start.datum || ""),
+        startTime: start.cas || "",
+        endTime: "-",
+        minutes: minutesBetween(start.createdAtLocal, new Date().toISOString())
+      });
+    }
+  });
+  return rows;
+}
+
+function getMonthlySummary(){
+  const data = getReportRecords();
+  const rows = buildMonthlyPairs(data.records);
+  const total = rows.reduce((sum, r) => sum + (r.minutes || 0), 0);
+  const days = new Set(rows.map(r => `${r.worker}-${r.date}`)).size;
+  return { ...data, rows, total, days };
+}
+
+function renderMonthlyReport(showEmpty = true){
+  const box = document.getElementById("monthlyReport");
+  if(!box || !isAdmin) return;
+  const report = getMonthlySummary();
+  if(report.rows.length === 0){
+    box.innerHTML = showEmpty ? `<p>${t[lang].reportNoData}</p>` : "";
+    return;
+  }
+  box.innerHTML = `
+    <p><b>${t[lang].reportGenerated}</b>: ${report.month}</p>
+    <p>${t[lang].totalHours}: <b>${formatMinutes(report.total)}</b><br>${t[lang].reportDays}: <b>${report.days}</b></p>
+    <div class="record">
+      ${report.rows.map(r => `
+        <b>${r.worker}</b> — ${r.site}<br>
+        ${r.date}: ${t[lang].arrival} ${r.startTime} / ${t[lang].departure} ${r.endTime}<br>
+        ${t[lang].duration}: ${formatMinutes(r.minutes)}
+      `).join("<hr>")}
+    </div>`;
+}
+
+function printMonthlyReport(){
+  if(!isAdmin) return;
+  const report = getMonthlySummary();
+  if(report.rows.length === 0){alert(t[lang].reportNoData); return;}
+  const title = `Smurfex - ${t[lang].reportTitle} ${report.month}`;
+  const html = `<!doctype html><html><head><meta charset="utf-8"><title>${title}</title>
+    <style>body{font-family:Arial,sans-serif;padding:24px;color:#111} h1{margin-bottom:4px} table{width:100%;border-collapse:collapse;margin-top:18px} th,td{border:1px solid #999;padding:8px;text-align:left;font-size:13px} th{background:#eee}.sum{margin-top:12px;font-size:16px}</style>
+    </head><body>
+    <h1>Smurfex s.r.o. - ${t[lang].reportTitle}</h1>
+    <div>${t[lang].reportMonth}: <b>${report.month}</b></div>
+    <div>${t[lang].reportWorker}: <b>${report.worker || t[lang].allWorkers}</b></div>
+    <div class="sum">${t[lang].totalHours}: <b>${formatMinutes(report.total)}</b> | ${t[lang].reportDays}: <b>${report.days}</b></div>
+    <table><thead><tr><th>Dátum</th><th>Pracovník</th><th>Stavba</th><th>${t[lang].arrival}</th><th>${t[lang].departure}</th><th>${t[lang].duration}</th></tr></thead><tbody>
+    ${report.rows.map(r => `<tr><td>${r.date}</td><td>${r.worker}</td><td>${r.site}</td><td>${r.startTime}</td><td>${r.endTime}</td><td>${formatMinutes(r.minutes)}</td></tr>`).join("")}
+    </tbody></table>
+    <script>window.onload=function(){window.print();}</script></body></html>`;
+  const w = window.open("", "_blank");
+  w.document.open();
+  w.document.write(html);
+  w.document.close();
+}
+
+function exportMonthlyCSV(){
+  if(!isAdmin) return;
+  const report = getMonthlySummary();
+  if(report.rows.length === 0){alert(t[lang].reportNoData); return;}
+  const header = "Date;Worker;Site;Arrival;Departure;Minutes;Duration\n";
+  const rows = report.rows.map(r => `${r.date};${r.worker};${r.site};${r.startTime};${r.endTime};${r.minutes};${formatMinutes(r.minutes)}`).join("\n");
+  const blob = new Blob([header + rows], {type:"text/csv;charset=utf-8"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `smurfex-vykaz-${report.month}-${report.worker || "vsetci"}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
 }
 
 function exportCSV(){
