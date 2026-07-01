@@ -54,6 +54,11 @@ const t = {
     pinPlaceholder:"Zadaj PIN",
     siteLabel:"Stavba",
     sitePlaceholder:"Vyber stavbu",
+    photoLabel:"Fotka pracovníka",
+    photoHint:"Pred uložením sprav fotku pracovníka.",
+    photoRequired:"Fotka pracovníka je povinná.",
+    photoProcessing:"Spracúvam fotku...",
+    photo:"Fotka",
     startBtn:"PRIŠIEL SOM",
     endBtn:"ODCHÁDZAM",
     todayTitle:"Všetky záznamy",
@@ -109,6 +114,11 @@ const t = {
     pinPlaceholder:"Enter PIN",
     siteLabel:"Construction site",
     sitePlaceholder:"Select site",
+    photoLabel:"Worker photo",
+    photoHint:"Take a worker photo before saving.",
+    photoRequired:"Worker photo is required.",
+    photoProcessing:"Processing photo...",
+    photo:"Photo",
     startBtn:"I ARRIVED",
     endBtn:"I AM LEAVING",
     todayTitle:"All records",
@@ -261,6 +271,44 @@ function adminLogout(){
   renderRecords();
 }
 
+
+function readPhotoBase64(){
+  return new Promise((resolve, reject) => {
+    const input = document.getElementById("selfie");
+    if(!input || !input.files || !input.files[0]){
+      reject(new Error("Photo required"));
+      return;
+    }
+    const file = input.files[0];
+    const reader = new FileReader();
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        const maxSize = 640;
+        let width = img.width;
+        let height = img.height;
+        if(width > height && width > maxSize){
+          height = Math.round(height * maxSize / width);
+          width = maxSize;
+        } else if(height > maxSize){
+          width = Math.round(width * maxSize / height);
+          height = maxSize;
+        }
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL("image/jpeg", 0.55));
+      };
+      img.onerror = reject;
+      img.src = reader.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
 function getLocation(){
   return new Promise((resolve, reject) => {
     if(!navigator.geolocation){
@@ -287,6 +335,17 @@ async function saveRecord(type){
   if(!worker || !site || !pin){alert(t[lang].fillAlert);return;}
   if(WORKER_PINS[worker] !== pin){alert(t[lang].wrongWorkerPin);return;}
 
+  document.getElementById("status").innerText = t[lang].photoProcessing;
+  let photoData;
+  try{
+    photoData = await readPhotoBase64();
+  }catch(e){
+    console.error(e);
+    alert(t[lang].photoRequired);
+    document.getElementById("status").innerText = t[lang].photoRequired;
+    return;
+  }
+
   document.getElementById("status").innerText = t[lang].gpsGetting;
   let gps;
   try{
@@ -311,6 +370,7 @@ async function saveRecord(type){
     longitude: gps.lng,
     accuracy: gps.accuracy,
     mapUrl: gps.mapUrl,
+    photoData: photoData,
     createdAt: firebase.firestore.FieldValue.serverTimestamp()
   };
 
@@ -320,6 +380,8 @@ async function saveRecord(type){
     await recordsCol.add(record);
     localStorage.setItem(key, JSON.stringify(record));
     document.getElementById("workerPin").value = "";
+    const selfieInput = document.getElementById("selfie");
+    if(selfieInput) selfieInput.value = "";
     document.getElementById("status").innerText = t[lang][type] + " " + t[lang].saved + ": " + record.cas;
   }catch(e){
     console.error(e);
@@ -431,7 +493,8 @@ function renderRecords(){
       <b>${t[lang][r.typ] || r.typ}</b> – ${r.pracovnik || ""}<br>
       ${r.datum || ""} ${r.cas || ""}<br>
       ${t[lang].site}: ${r.stavba || ""}<br>
-      ${r.mapUrl ? `${t[lang].location}: <a href="${r.mapUrl}" target="_blank" rel="noopener">${t[lang].map}</a> (${r.accuracy || "?"} m)` : ""}
+      ${r.mapUrl ? `${t[lang].location}: <a href="${r.mapUrl}" target="_blank" rel="noopener">${t[lang].map}</a> (${r.accuracy || "?"} m)<br>` : ""}
+      ${r.photoData ? `${t[lang].photo}:<br><img src="${r.photoData}" alt="${t[lang].photo}" style="width:100%;max-width:220px;border-radius:12px;margin-top:8px;">` : ""}
     </div>`).join("");
 }
 
@@ -553,9 +616,9 @@ function exportMonthlyCSV(){
 function exportCSV(){
   if(!isAdmin) return;
   if(currentRecords.length === 0){alert(t[lang].noExport);return;}
-  const header = "Date;Time;Worker;Site;Type;Latitude;Longitude;Accuracy;Map\n";
+  const header = "Date;Time;Worker;Site;Type;Latitude;Longitude;Accuracy;Map;Photo\n";
   const rows = currentRecords.map(r =>
-    `${r.datum || ""};${r.cas || ""};${r.pracovnik || ""};${r.stavba || ""};${t.en[r.typ] || r.typ || ""};${r.latitude || ""};${r.longitude || ""};${r.accuracy || ""};${r.mapUrl || ""}`
+    `${r.datum || ""};${r.cas || ""};${r.pracovnik || ""};${r.stavba || ""};${t.en[r.typ] || r.typ || ""};${r.latitude || ""};${r.longitude || ""};${r.accuracy || ""};${r.mapUrl || ""};${r.photoData ? "yes" : "no"}`
   ).join("\n");
   const blob = new Blob([header + rows], {type:"text/csv;charset=utf-8"});
   const url = URL.createObjectURL(blob);
