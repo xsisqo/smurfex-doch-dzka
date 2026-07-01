@@ -104,6 +104,16 @@ const t = {
     reportDays:"Počet dní",
     reportNoData:"Pre vybraný mesiac nie sú záznamy.",
     reportGenerated:"Výkaz vygenerovaný",
+    filterTitle:"Filter záznamov",
+    filterWorker:"Pracovník",
+    filterSite:"Stavba",
+    filterDate:"Dátum",
+    filterType:"Typ",
+    filterAllTypes:"Všetko",
+    filterSearch:"Hľadať",
+    filterSearchPlaceholder:"Meno, stavba, dátum...",
+    resetFilterBtn:"Reset filtra",
+    filteredCount:"Zobrazené záznamy",
     arrival:"Príchod",
     departure:"Odchod",
     duration:"Trvanie"
@@ -167,6 +177,16 @@ const t = {
     reportDays:"Days",
     reportNoData:"No records for selected month.",
     reportGenerated:"Report generated",
+    filterTitle:"Record filter",
+    filterWorker:"Worker",
+    filterSite:"Site",
+    filterDate:"Date",
+    filterType:"Type",
+    filterAllTypes:"All",
+    filterSearch:"Search",
+    filterSearchPlaceholder:"Name, site, date...",
+    resetFilterBtn:"Reset filter",
+    filteredCount:"Shown records",
     arrival:"Arrival",
     departure:"Departure",
     duration:"Duration"
@@ -201,6 +221,32 @@ function fillSelects(){
   const reportMonth = document.getElementById("reportMonth");
   if(reportMonth && !reportMonth.value){
     reportMonth.value = new Date().toISOString().slice(0,7);
+  }
+
+  const filterWorker = document.getElementById("filterWorker");
+  if(filterWorker){
+    const selected = filterWorker.value;
+    filterWorker.innerHTML = `<option value="">${t[lang].allWorkers}</option>` +
+      WORKERS.map(name => `<option value="${name}">${name}</option>`).join("");
+    if(selected) filterWorker.value = selected;
+  }
+
+  const filterSite = document.getElementById("filterSite");
+  if(filterSite){
+    const selected = filterSite.value;
+    filterSite.innerHTML = `<option value="">${t[lang].filterAllTypes}</option>` +
+      SITES.map(site => `<option value="${site}">${site}</option>`).join("");
+    if(selected) filterSite.value = selected;
+  }
+
+  const filterType = document.getElementById("filterType");
+  if(filterType){
+    const selected = filterType.value;
+    filterType.innerHTML = `
+      <option value="">${t[lang].filterAllTypes}</option>
+      <option value="start">${t[lang].start}</option>
+      <option value="end">${t[lang].end}</option>`;
+    if(selected) filterType.value = selected;
   }
 }
 
@@ -527,12 +573,43 @@ function renderDashboard(){
     </div>`).join("");
 }
 
+function getFilteredRecords(){
+  const worker = document.getElementById("filterWorker") ? document.getElementById("filterWorker").value : "";
+  const site = document.getElementById("filterSite") ? document.getElementById("filterSite").value : "";
+  const date = document.getElementById("filterDate") ? document.getElementById("filterDate").value : "";
+  const type = document.getElementById("filterType") ? document.getElementById("filterType").value : "";
+  const search = document.getElementById("filterSearch") ? document.getElementById("filterSearch").value.trim().toLowerCase() : "";
+
+  return currentRecords.filter(r => {
+    if(worker && r.pracovnik !== worker) return false;
+    if(site && r.stavba !== site) return false;
+    if(date && r.dateISO !== date) return false;
+    if(type && r.typ !== type) return false;
+    if(search){
+      const text = `${r.pracovnik || ""} ${r.stavba || ""} ${r.datum || ""} ${r.cas || ""} ${r.dateISO || ""} ${t[lang][r.typ] || r.typ || ""}`.toLowerCase();
+      if(!text.includes(search)) return false;
+    }
+    return true;
+  });
+}
+
+function resetFilters(){
+  ["filterWorker","filterSite","filterDate","filterType","filterSearch"].forEach(id => {
+    const el = document.getElementById(id);
+    if(el) el.value = "";
+  });
+  renderRecords();
+}
+
 function renderRecords(){
   const box = document.getElementById("records");
   if(!box) return;
   if(!isAdmin){ box.innerHTML = ""; return; }
-  if(currentRecords.length === 0){box.innerHTML = `<p>${t[lang].noRecords}</p>`;return;}
-  box.innerHTML = currentRecords.map(r => `
+  const records = getFilteredRecords();
+  const count = document.getElementById("filterCount");
+  if(count) count.innerText = `${t[lang].filteredCount}: ${records.length} / ${currentRecords.length}`;
+  if(records.length === 0){box.innerHTML = `<p>${t[lang].noRecords}</p>`;return;}
+  box.innerHTML = records.map(r => `
     <div class="record">
       <b>${t[lang][r.typ] || r.typ}</b> – ${r.pracovnik || ""}<br>
       ${r.datum || ""} ${r.cas || ""}<br>
@@ -659,9 +736,10 @@ function exportMonthlyCSV(){
 
 function exportCSV(){
   if(!isAdmin) return;
-  if(currentRecords.length === 0){alert(t[lang].noExport);return;}
+  const records = getFilteredRecords();
+  if(records.length === 0){alert(t[lang].noExport);return;}
   const header = "Date;Time;Worker;Site;Type;Latitude;Longitude;Accuracy;Map;Photo\n";
-  const rows = currentRecords.map(r =>
+  const rows = records.map(r =>
     `${r.datum || ""};${r.cas || ""};${r.pracovnik || ""};${r.stavba || ""};${t.en[r.typ] || r.typ || ""};${r.latitude || ""};${r.longitude || ""};${r.accuracy || ""};${r.mapUrl || ""};${r.photoData ? "yes" : "no"}`
   ).join("\n");
   const blob = new Blob([header + rows], {type:"text/csv;charset=utf-8"});
