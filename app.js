@@ -118,9 +118,6 @@ function setLang(l){
   document.querySelectorAll("[data-i18n]").forEach(el => {
     if(t[lang][el.dataset.i18n]) el.innerText = t[lang][el.dataset.i18n];
   });
-  document.querySelectorAll("[data-i18n-placeholder]").forEach(el => {
-    if(t[lang][el.dataset.i18nPlaceholder]) el.placeholder = t[lang][el.dataset.i18nPlaceholder];
-  });
   document.getElementById("btn-sk").classList.toggle("active", lang === "sk");
   document.getElementById("btn-en").classList.toggle("active", lang === "en");
   fillSelects();
@@ -129,9 +126,14 @@ function setLang(l){
 }
 
 function renderAdminState(){
-  document.getElementById("adminPanel").style.display = isAdmin ? "block" : "none";
-  document.getElementById("adminLoginBtn").style.display = isAdmin ? "none" : "inline-block";
-  document.getElementById("adminLogoutBtn").style.display = isAdmin ? "inline-block" : "none";
+  const adminPanel = document.getElementById("adminPanel");
+  const adminLoginBtn = document.getElementById("adminLoginBtn");
+  const adminLogoutBtn = document.getElementById("adminLogoutBtn");
+  if(!adminPanel || !adminLoginBtn || !adminLogoutBtn) return;
+
+  adminPanel.style.display = isAdmin ? "block" : "none";
+  adminLoginBtn.style.display = isAdmin ? "none" : "inline-block";
+  adminLogoutBtn.style.display = isAdmin ? "inline-block" : "none";
   if(isAdmin) startAdminListener();
 }
 
@@ -141,7 +143,7 @@ function adminLogin(){
     isAdmin = true;
     localStorage.setItem("smurfex_admin", "1");
     renderAdminState();
-  } else {
+  } else if(pin !== null) {
     alert(t[lang].wrongPin);
   }
 }
@@ -155,12 +157,13 @@ function adminLogout(){
   }
   currentRecords = [];
   renderAdminState();
+  renderRecords();
 }
 
 async function saveRecord(type){
   const worker = document.getElementById("worker").value.trim();
   const site = document.getElementById("site").value.trim();
-  if(!worker || !site){alert(t[lang].fillAlert);return}
+  if(!worker || !site){alert(t[lang].fillAlert);return;}
 
   const now = new Date();
   const record = {
@@ -201,8 +204,9 @@ function startAdminListener(){
 
 function renderRecords(){
   const box = document.getElementById("records");
-  if(!box || !isAdmin) return;
-  if(currentRecords.length === 0){box.innerHTML = `<p>${t[lang].noRecords}</p>`;return}
+  if(!box) return;
+  if(!isAdmin){ box.innerHTML = ""; return; }
+  if(currentRecords.length === 0){box.innerHTML = `<p>${t[lang].noRecords}</p>`;return;}
   box.innerHTML = currentRecords.map(r => `
     <div class="record">
       <b>${t[lang][r.typ] || r.typ}</b> – ${r.pracovnik || ""}<br>
@@ -213,13 +217,11 @@ function renderRecords(){
 
 function exportCSV(){
   if(!isAdmin) return;
-  if(currentRecords.length === 0){alert(t[lang].noExport);return}
-  const header = "Date;Time;Worker;Site;Type
-";
+  if(currentRecords.length === 0){alert(t[lang].noExport);return;}
+  const header = "Date;Time;Worker;Site;Type\n";
   const rows = currentRecords.map(r =>
     `${r.datum || ""};${r.cas || ""};${r.pracovnik || ""};${r.stavba || ""};${t.en[r.typ] || r.typ || ""}`
-  ).join("
-");
+  ).join("\n");
   const blob = new Blob([header + rows], {type:"text/csv;charset=utf-8"});
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
@@ -239,5 +241,10 @@ async function clearRecords(){
   await batch.commit();
 }
 
-if("serviceWorker" in navigator){navigator.serviceWorker.register("sw.js")}
+if("serviceWorker" in navigator){
+  navigator.serviceWorker.register("sw.js");
+}
+
+fillSelects();
 setLang(lang);
+renderAdminState();
