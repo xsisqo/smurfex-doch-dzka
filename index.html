@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Smurfex Dochádzka</title>
+  <title>Smurfex Dochádzka / Attendance</title>
   <meta name="theme-color" content="#56b9e8">
   <link rel="manifest" href="manifest.json">
   <link rel="icon" href="icon-192.png">
@@ -13,28 +13,34 @@
   <main class="app">
     <section class="card">
       <img src="logo.png" class="logo" alt="Smurfex s.r.o.">
-      <h1>Dochádzka</h1>
-      <p class="sub">Jednoduchá evidencia príchodu a odchodu</p>
 
-      <label>Meno pracovníka</label>
-      <input id="worker" placeholder="napr. Ján Novák">
+      <div class="lang">
+        <button class="langBtn active" onclick="setLang('sk')" id="btn-sk">SK</button>
+        <button class="langBtn" onclick="setLang('en')" id="btn-en">EN</button>
+      </div>
 
-      <label>Stavba</label>
-      <input id="site" placeholder="napr. STRABAG / Nitra">
+      <h1 data-i18n="title">Dochádzka</h1>
+      <p class="sub" data-i18n="subtitle">Jednoduchá evidencia príchodu a odchodu</p>
+
+      <label data-i18n="workerLabel">Meno pracovníka</label>
+      <input id="worker" data-i18n-placeholder="workerPlaceholder" placeholder="napr. Ján Novák">
+
+      <label data-i18n="siteLabel">Stavba</label>
+      <input id="site" data-i18n-placeholder="sitePlaceholder" placeholder="napr. STRABAG / Nitra">
 
       <div class="buttons">
-        <button class="start" onclick="saveRecord('PRÍCHOD')">PRIŠIEL SOM</button>
-        <button class="end" onclick="saveRecord('ODCHOD')">ODCHÁDZAM</button>
+        <button class="start" onclick="saveRecord('start')" data-i18n="startBtn">PRIŠIEL SOM</button>
+        <button class="end" onclick="saveRecord('end')" data-i18n="endBtn">ODCHÁDZAM</button>
       </div>
 
       <p id="status"></p>
     </section>
 
     <section class="card">
-      <h2>Dnešné záznamy</h2>
+      <h2 data-i18n="todayTitle">Dnešné záznamy</h2>
       <div id="records"></div>
-      <button class="small" onclick="exportCSV()">Export CSV</button>
-      <button class="small danger" onclick="clearRecords()">Vymazať záznamy</button>
+      <button class="small" onclick="exportCSV()" data-i18n="exportBtn">Export CSV</button>
+      <button class="small danger" onclick="clearRecords()" data-i18n="clearBtn">Vymazať záznamy</button>
     </section>
   </main>
 

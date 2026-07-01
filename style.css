@@ -1,88 +1,21 @@
 *{box-sizing:border-box}
-body{
-  margin:0;
-  font-family:Arial, sans-serif;
-  background:#f2f6f8;
-  color:#111;
-}
-.app{
-  max-width:520px;
-  margin:0 auto;
-  padding:18px;
-}
-.card{
-  background:white;
-  border-radius:22px;
-  padding:22px;
-  margin-bottom:18px;
-  box-shadow:0 8px 25px rgba(0,0,0,.10);
-}
-.logo{
-  display:block;
-  width:220px;
-  max-width:100%;
-  margin:0 auto 12px;
-}
-h1{
-  text-align:center;
-  margin:8px 0 0;
-  color:#2c9ed4;
-  font-size:34px;
-}
-h2{
-  margin:0 0 12px;
-  color:#2c9ed4;
-}
-.sub{
-  text-align:center;
-  color:#555;
-  margin-bottom:20px;
-}
-label{
-  display:block;
-  margin-top:14px;
-  margin-bottom:6px;
-  font-weight:bold;
-}
-input{
-  width:100%;
-  padding:16px;
-  font-size:18px;
-  border:1px solid #ddd;
-  border-radius:14px;
-}
-.buttons{
-  display:grid;
-  gap:14px;
-  margin-top:20px;
-}
-button{
-  border:0;
-  border-radius:18px;
-  padding:20px;
-  font-size:22px;
-  font-weight:bold;
-  color:white;
-  cursor:pointer;
-}
-.start{background:#19a75b}
-.end{background:#d93025}
-.small{
-  background:#2c9ed4;
-  font-size:16px;
-  padding:13px 15px;
-  margin-top:10px;
-  margin-right:6px;
-}
+body{margin:0;font-family:Arial,sans-serif;background:#f2f6f8;color:#111}
+.app{max-width:520px;margin:0 auto;padding:18px}
+.card{background:white;border-radius:22px;padding:22px;margin-bottom:18px;box-shadow:0 8px 25px rgba(0,0,0,.10)}
+.logo{display:block;width:220px;max-width:100%;margin:0 auto 12px}
+.lang{display:flex;justify-content:center;gap:8px;margin:8px 0 6px}
+.langBtn{padding:9px 18px;border-radius:12px;border:1px solid #2c9ed4;background:white;color:#2c9ed4;font-size:16px;font-weight:bold}
+.langBtn.active{background:#2c9ed4;color:white}
+h1{text-align:center;margin:8px 0 0;color:#2c9ed4;font-size:34px}
+h2{margin:0 0 12px;color:#2c9ed4}
+.sub{text-align:center;color:#555;margin-bottom:20px}
+label{display:block;margin-top:14px;margin-bottom:6px;font-weight:bold}
+input{width:100%;padding:16px;font-size:18px;border:1px solid #ddd;border-radius:14px}
+.buttons{display:grid;gap:14px;margin-top:20px}
+button{border:0;border-radius:18px;padding:20px;font-size:22px;font-weight:bold;color:white;cursor:pointer}
+.start{background:#19a75b}.end{background:#d93025}
+.small{background:#2c9ed4;font-size:16px;padding:13px 15px;margin-top:10px;margin-right:6px}
 .danger{background:#777}
-.record{
-  padding:12px;
-  border-bottom:1px solid #eee;
-  font-size:15px;
-}
+.record{padding:12px;border-bottom:1px solid #eee;font-size:15px}
 .record b{color:#111}
-#status{
-  text-align:center;
-  font-weight:bold;
-  color:#19a75b;
-}
+#status{text-align:center;font-weight:bold;color:#19a75b}
