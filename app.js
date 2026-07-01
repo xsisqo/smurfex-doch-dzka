@@ -63,6 +63,9 @@ const t = {
     endBtn:"ODCHÁDZAM",
     todayTitle:"Všetky záznamy",
     dashboardTitle:"Živý prehľad dnes",
+    notificationsTitle:"Posledné udalosti",
+    presentNow:"Momentálne v práci",
+    latestEvents:"Najnovšie záznamy",
     exportBtn:"Export CSV",
     clearBtn:"Vymazať záznamy",
     noRecords:"Zatiaľ žiadne záznamy.",
@@ -123,6 +126,9 @@ const t = {
     endBtn:"I AM LEAVING",
     todayTitle:"All records",
     dashboardTitle:"Live overview today",
+    notificationsTitle:"Latest events",
+    presentNow:"Currently at work",
+    latestEvents:"Newest records",
     exportBtn:"Export CSV",
     clearBtn:"Clear records",
     noRecords:"No records yet.",
@@ -230,6 +236,8 @@ function setLang(l){
   document.getElementById("btn-en").classList.toggle("active", lang === "en");
   fillSelects();
   renderAdminState();
+  renderNotifications();
+  renderNotifications();
   renderDashboard();
   renderRecords();
   renderMonthlyReport(false);
@@ -267,6 +275,7 @@ function adminLogout(){
   }
   currentRecords = [];
   renderAdminState();
+  renderNotifications();
   renderDashboard();
   renderRecords();
 }
@@ -395,6 +404,7 @@ function startAdminListener(){
   unsubscribeRecords = recordsCol.orderBy("createdAtLocal", "desc").onSnapshot(snapshot => {
     currentRecords = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     document.getElementById("syncStatus").innerText = t[lang].online;
+    renderNotifications();
     renderDashboard();
     renderRecords();
     renderMonthlyReport(false);
@@ -456,6 +466,40 @@ function getTodaySummary(){
   });
 
   return Object.values(summary).filter(s => s.status || s.minutes > 0);
+}
+
+
+function renderNotifications(){
+  const box = document.getElementById("notifications");
+  if(!box) return;
+  if(!isAdmin){ box.innerHTML = ""; return; }
+
+  const today = getTodayISO();
+  const todayRecords = currentRecords
+    .filter(r => r.dateISO === today)
+    .slice()
+    .sort((a,b) => (b.createdAtLocal || "").localeCompare(a.createdAtLocal || ""));
+
+  const presentCount = getTodaySummary().filter(s => s.status === "in").length;
+
+  if(todayRecords.length === 0){
+    box.innerHTML = `<div class="record"><b>${t[lang].presentNow}: 0</b><br>${t[lang].noToday}</div>`;
+    return;
+  }
+
+  const latest = todayRecords.slice(0, 8).map(r => {
+    const icon = r.typ === "start" ? "🟢" : "⚪";
+    const typeText = t[lang][r.typ] || r.typ;
+    const map = r.mapUrl ? ` · <a href="${r.mapUrl}" target="_blank" rel="noopener">${t[lang].map}</a>` : "";
+    return `${icon} <b>${r.pracovnik || ""}</b> — ${typeText} — ${r.stavba || ""} — ${r.cas || ""}${map}`;
+  }).join("<br>");
+
+  box.innerHTML = `
+    <div class="record">
+      <b>${t[lang].presentNow}: ${presentCount}</b><br>
+      <span>${t[lang].latestEvents}</span><br>
+      ${latest}
+    </div>`;
 }
 
 function renderDashboard(){
