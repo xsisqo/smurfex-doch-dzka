@@ -34,25 +34,25 @@
       </div>
 
       <p id="status"></p>
+      <p id="syncStatus" class="sub"></p>
     </section>
 
     <section class="card">
-      <h2 data-i18n="todayTitle">Dnešné záznamy</h2>
-      <div id="records"></div>
+      <h2 data-i18n="adminTitle">Administrátor</h2>
+      <button class="small" onclick="adminLogin()" id="adminLoginBtn" data-i18n="adminLoginBtn">Admin prihlásenie</button>
+      <button class="small danger" onclick="adminLogout()" id="adminLogoutBtn" style="display:none" data-i18n="adminLogoutBtn">Odhlásiť admina</button>
 
-      <div id="admin-login">
-        <button class="small" onclick="adminLogin()" data-i18n="adminBtn">Admin</button>
-      </div>
-
-      <div id="admin-panel" style="display:none;">
-        <p><b data-i18n="adminMode">Administrátor</b></p>
+      <div id="adminPanel" style="display:none">
+        <h2 data-i18n="todayTitle">Dnešné záznamy</h2>
+        <div id="records"></div>
         <button class="small" onclick="exportCSV()" data-i18n="exportBtn">Export CSV</button>
         <button class="small danger" onclick="clearRecords()" data-i18n="clearBtn">Vymazať záznamy</button>
-        <button class="small" onclick="adminLogout()" data-i18n="logoutBtn">Odhlásiť admina</button>
       </div>
     </section>
   </main>
 
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
