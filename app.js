@@ -32,6 +32,14 @@ const SITES = [
   "STRABAG nemocnica"
 ];
 
+const SITE_COORDS = {
+  "STRABAG letisko": { lat: 48.6379611, lng: 19.1356756 },
+  "STRABAG nemocnica": { lat: 48.744191282, lng: 19.119472504 }
+};
+
+const GEOFENCE_RADIUS_METERS = 300;
+const DRIVER_EXEMPT_WORKERS = []; // sem môžeme neskôr doplniť mená šoférov
+
 const firebaseConfig = {
   apiKey: "AIzaSyD972-SyhAtPi7keb-ivBB3FmAsahuHfs8",
   authDomain: "smurfex-dochadzka.firebaseapp.com",
@@ -112,6 +120,17 @@ const t = {
     saveError:"Chyba uloženia. Skontroluj internet alebo Firestore pravidlá.",
     gpsGetting:"Získavam GPS polohu...",
     gpsError:"GPS poloha je povinná. Povoľ polohu v prehliadači a skús znova.",
+    geofenceError:"Nachádzate sa mimo povoleného okruhu stavby. Dochádzku je možné zapísať iba priamo na stavbe.",
+    geofenceDistance:"Vzdialenosť od stavby",
+    geofenceOk:"Poloha je v povolenom okruhu stavby.",
+    weatherTitle:"Počasie na stavbe",
+    weatherLoad:"Načítať počasie",
+    weatherLoading:"Načítavam počasie...",
+    weatherError:"Počasie sa nepodarilo načítať.",
+    temperature:"Teplota",
+    wind:"Vietor",
+    rain:"Zrážky",
+    weatherHint:"Vyber stavbu a zobrazí sa aktuálne počasie.",
     map:"Otvoriť mapu",
     location:"GPS poloha",
     inWork:"V práci",
@@ -217,6 +236,17 @@ const t = {
     saveError:"Save error. Check internet or Firestore rules.",
     gpsGetting:"Getting GPS location...",
     gpsError:"GPS location is required. Allow location in the browser and try again.",
+    geofenceError:"You are outside the allowed site radius. Attendance can only be recorded directly at the construction site.",
+    geofenceDistance:"Distance from site",
+    geofenceOk:"Location is within the allowed site radius.",
+    weatherTitle:"Site weather",
+    weatherLoad:"Load weather",
+    weatherLoading:"Loading weather...",
+    weatherError:"Weather could not be loaded.",
+    temperature:"Temperature",
+    wind:"Wind",
+    rain:"Rain",
+    weatherHint:"Select a site to show current weather.",
     map:"Open map",
     location:"GPS location",
     inWork:"At work",
@@ -276,6 +306,8 @@ function fillSelects(){
 
   if(selectedWorker) workerSelect.value = selectedWorker;
   if(selectedSite) siteSelect.value = selectedSite;
+  siteSelect.onchange = renderWeatherForSelectedSite;
+  renderWeatherForSelectedSite();
 
   const reportWorker = document.getElementById("reportWorker");
   if(reportWorker){
@@ -564,6 +596,77 @@ function getLocation(){
   });
 }
 
+
+function degreesToRadians(value){
+  return value * Math.PI / 180;
+}
+
+function distanceMeters(lat1, lng1, lat2, lng2){
+  const earthRadius = 6371000;
+  const dLat = degreesToRadians(lat2 - lat1);
+  const dLng = degreesToRadians(lng2 - lng1);
+  const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(degreesToRadians(lat1)) * Math.cos(degreesToRadians(lat2)) *
+    Math.sin(dLng / 2) * Math.sin(dLng / 2);
+  return Math.round(earthRadius * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
+}
+
+function checkGeofence(worker, site, gps){
+  const sitePosition = SITE_COORDS[site];
+  if(!sitePosition || DRIVER_EXEMPT_WORKERS.includes(worker)){
+    return { ok: true, distance: null };
+  }
+  const distance = distanceMeters(gps.lat, gps.lng, sitePosition.lat, sitePosition.lng);
+  return { ok: distance <= GEOFENCE_RADIUS_METERS, distance };
+}
+
+function weatherCodeText(code){
+  const mapSk = {
+    0:"Jasno", 1:"Prevažne jasno", 2:"Polooblačno", 3:"Zamračené",
+    45:"Hmla", 48:"Námraza", 51:"Slabé mrholenie", 53:"Mrholenie", 55:"Silné mrholenie",
+    61:"Slabý dážď", 63:"Dážď", 65:"Silný dážď", 71:"Slabé sneženie", 73:"Sneženie", 75:"Silné sneženie",
+    80:"Prehánky", 81:"Silné prehánky", 82:"Prudké prehánky", 95:"Búrka"
+  };
+  const mapEn = {
+    0:"Clear", 1:"Mostly clear", 2:"Partly cloudy", 3:"Overcast",
+    45:"Fog", 48:"Rime fog", 51:"Light drizzle", 53:"Drizzle", 55:"Heavy drizzle",
+    61:"Light rain", 63:"Rain", 65:"Heavy rain", 71:"Light snow", 73:"Snow", 75:"Heavy snow",
+    80:"Showers", 81:"Heavy showers", 82:"Violent showers", 95:"Thunderstorm"
+  };
+  return (lang === "en" ? mapEn : mapSk)[code] || (lang === "en" ? "Weather" : "Počasie");
+}
+
+async function renderWeatherForSelectedSite(){
+  const box = document.getElementById("weatherBox");
+  const siteSelect = document.getElementById("site");
+  if(!box || !siteSelect) return;
+  const site = siteSelect.value;
+  const coords = SITE_COORDS[site];
+  if(!site || !coords){
+    box.innerHTML = `<p>${t[lang].weatherHint}</p>`;
+    return;
+  }
+  box.innerHTML = `<p>${t[lang].weatherLoading}</p>`;
+  try{
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${coords.lat}&longitude=${coords.lng}&current=temperature_2m,precipitation,wind_speed_10m,weather_code&timezone=auto`;
+    const response = await fetch(url);
+    if(!response.ok) throw new Error("Weather error");
+    const data = await response.json();
+    const c = data.current || {};
+    box.innerHTML = `
+      <div class="record">
+        <b>${site}</b><br>
+        🌤 ${weatherCodeText(c.weather_code)}<br>
+        🌡 ${t[lang].temperature}: ${Math.round(c.temperature_2m)} °C<br>
+        💨 ${t[lang].wind}: ${Math.round(c.wind_speed_10m || 0)} km/h<br>
+        🌧 ${t[lang].rain}: ${c.precipitation || 0} mm
+      </div>`;
+  }catch(e){
+    console.error(e);
+    box.innerHTML = `<p>${t[lang].weatherError}</p>`;
+  }
+}
+
 async function saveRecord(type){
   const worker = document.getElementById("worker").value.trim();
   const site = document.getElementById("site").value.trim();
@@ -593,6 +696,14 @@ async function saveRecord(type){
     return;
   }
 
+  const geofence = checkGeofence(worker, site, gps);
+  if(!geofence.ok){
+    const message = `${t[lang].geofenceError} ${t[lang].geofenceDistance}: ${geofence.distance} m / ${GEOFENCE_RADIUS_METERS} m.`;
+    alert(message);
+    document.getElementById("status").innerText = message;
+    return;
+  }
+
   const now = new Date();
   const record = {
     datum: now.toLocaleDateString("sk-SK"),
@@ -606,6 +717,10 @@ async function saveRecord(type){
     longitude: gps.lng,
     accuracy: gps.accuracy,
     mapUrl: gps.mapUrl,
+    siteLatitude: SITE_COORDS[site] ? SITE_COORDS[site].lat : null,
+    siteLongitude: SITE_COORDS[site] ? SITE_COORDS[site].lng : null,
+    geofenceDistance: geofence.distance,
+    geofenceRadius: GEOFENCE_RADIUS_METERS,
     photoData: photoData,
     createdAt: firebase.firestore.FieldValue.serverTimestamp()
   };
@@ -618,7 +733,7 @@ async function saveRecord(type){
     document.getElementById("workerPin").value = "";
     const selfieInput = document.getElementById("selfie");
     if(selfieInput) selfieInput.value = "";
-    document.getElementById("status").innerText = t[lang][type] + " " + t[lang].saved + ": " + record.cas;
+    document.getElementById("status").innerText = t[lang][type] + " " + t[lang].saved + ": " + record.cas + " — " + t[lang].geofenceOk;
   }catch(e){
     console.error(e);
     alert(t[lang].saveError);

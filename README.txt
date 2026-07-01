@@ -1,5 +1,1 @@
-Smurfex PRO update
-
-Pridané upozornenie pred prihlasovaním dochádzky v SK/EN.
-Nahrajte na GitHub: index.html a app.js.
-Po nahratí spravte Ctrl+F5 alebo otvorte inkognito.
+Smurfex update: geofencing 300 m pre STRABAG letisko/nemocnica + počasie cez Open-Meteo. Nahrať index.html a app.js na GitHub. Po nahratí Ctrl+F5 / inkognito.

@@ -64,6 +64,11 @@
       <p id="syncStatus" class="sub"></p>
     </section>
 
+    <section class="card">
+      <h2 data-i18n="weatherTitle">Počasie na stavbe</h2>
+      <div id="weatherBox"><p data-i18n="weatherHint">Vyber stavbu a zobrazí sa aktuálne počasie.</p></div>
+      <button class="small" onclick="renderWeatherForSelectedSite()" data-i18n="weatherLoad">Načítať počasie</button>
+    </section>
 
 
     <section class="card">
@@ -166,6 +171,6 @@
 
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
-  <script src="app.js?v=requests-1"></script>
+  <script src="app.js?v=geofence-weather-1"></script>
 </body>
 </html>
