@@ -63,6 +63,10 @@ const t = {
     endBtn:"ODCHÁDZAM",
     todayTitle:"Všetky záznamy",
     dashboardTitle:"Živý prehľad dnes",
+    sitesDashboardTitle:"Dashboard stavieb",
+    peopleOnSite:"Aktuálne na stavbe",
+    siteHoursToday:"Hodiny dnes na stavbe",
+    noSiteWorkers:"Na tejto stavbe dnes zatiaľ nikto nie je.",
     notificationsTitle:"Posledné udalosti",
     presentNow:"Momentálne v práci",
     latestEvents:"Najnovšie záznamy",
@@ -136,6 +140,10 @@ const t = {
     endBtn:"I AM LEAVING",
     todayTitle:"All records",
     dashboardTitle:"Live overview today",
+    sitesDashboardTitle:"Sites dashboard",
+    peopleOnSite:"Currently on site",
+    siteHoursToday:"Hours today on site",
+    noSiteWorkers:"No one has checked in on this site today yet.",
     notificationsTitle:"Latest events",
     presentNow:"Currently at work",
     latestEvents:"Newest records",
@@ -285,6 +293,7 @@ function setLang(l){
   renderNotifications();
   renderNotifications();
   renderDashboard();
+  renderSiteDashboard();
   renderRecords();
   renderMonthlyReport(false);
 }
@@ -323,6 +332,7 @@ function adminLogout(){
   renderAdminState();
   renderNotifications();
   renderDashboard();
+  renderSiteDashboard();
   renderRecords();
 }
 
@@ -571,6 +581,41 @@ function renderDashboard(){
         ${t[lang].hoursToday}: ${formatMinutes(s.minutes)} | ${t[lang].lastTime}: ${s.lastTime || "-"}
       `).join("<br>")}
     </div>`).join("");
+}
+
+function renderSiteDashboard(){
+  const box = document.getElementById("siteDashboard");
+  if(!box) return;
+  if(!isAdmin){ box.innerHTML = ""; return; }
+
+  const data = getTodaySummary();
+  const bySite = {};
+  SITES.forEach(site => bySite[site] = []);
+  data.forEach(s => {
+    const site = s.site || "Bez stavby";
+    if(!bySite[site]) bySite[site] = [];
+    bySite[site].push(s);
+  });
+
+  box.innerHTML = Object.keys(bySite).map(site => {
+    const workers = bySite[site];
+    const present = workers.filter(w => w.status === "in").length;
+    const totalMinutes = workers.reduce((sum,w) => sum + (w.minutes || 0), 0);
+    const rows = workers.length ? workers.map(w => `
+      <div style="margin-top:8px">
+        ${w.status === "in" ? "🟢" : "🔴"} <b>${w.worker}</b><br>
+        ${w.status === "in" ? t[lang].inWork : t[lang].left} · ${t[lang].hoursToday}: ${formatMinutes(w.minutes)} · ${t[lang].lastTime}: ${w.lastTime || "-"}
+      </div>
+    `).join("") : `<p>${t[lang].noSiteWorkers}</p>`;
+
+    return `
+      <div class="record">
+        <b>🏗 ${site}</b><br>
+        ${t[lang].peopleOnSite}: <b>${present}</b><br>
+        ${t[lang].siteHoursToday}: <b>${formatMinutes(totalMinutes)}</b>
+        ${rows}
+      </div>`;
+  }).join("");
 }
 
 function getFilteredRecords(){
