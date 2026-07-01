@@ -71,6 +71,19 @@
           <div id="monthlyReport"></div>
         </div>
 
+
+        <h2 data-i18n="calendarTitle">Kalendár pracovníka</h2>
+        <div class="record">
+          <label data-i18n="calendarWorker">Pracovník</label>
+          <select id="calendarWorker" onchange="renderWorkerCalendar()"></select>
+
+          <label data-i18n="calendarMonth">Mesiac</label>
+          <input id="calendarMonth" type="month" onchange="renderWorkerCalendar()">
+
+          <button class="small" onclick="renderWorkerCalendar()" data-i18n="showCalendarBtn">Zobraziť kalendár</button>
+          <div id="workerCalendar"></div>
+        </div>
+
         <h2 data-i18n="filterTitle">Filter záznamov</h2>
         <div class="record">
           <label data-i18n="filterWorker">Pracovník</label>

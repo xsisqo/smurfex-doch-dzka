@@ -108,6 +108,15 @@ const t = {
     reportDays:"Počet dní",
     reportNoData:"Pre vybraný mesiac nie sú záznamy.",
     reportGenerated:"Výkaz vygenerovaný",
+    calendarTitle:"Kalendár pracovníka",
+    calendarWorker:"Pracovník",
+    calendarMonth:"Mesiac",
+    showCalendarBtn:"Zobraziť kalendár",
+    calendarNoData:"Pre vybraný mesiac nie sú záznamy.",
+    calendarProblem:"Chýba odchod",
+    calendarOk:"OK",
+    calendarDay:"Deň",
+    calendarStatus:"Stav",
     filterTitle:"Filter záznamov",
     filterWorker:"Pracovník",
     filterSite:"Stavba",
@@ -185,6 +194,15 @@ const t = {
     reportDays:"Days",
     reportNoData:"No records for selected month.",
     reportGenerated:"Report generated",
+    calendarTitle:"Worker calendar",
+    calendarWorker:"Worker",
+    calendarMonth:"Month",
+    showCalendarBtn:"Show calendar",
+    calendarNoData:"No records for selected month.",
+    calendarProblem:"Missing departure",
+    calendarOk:"OK",
+    calendarDay:"Day",
+    calendarStatus:"Status",
     filterTitle:"Record filter",
     filterWorker:"Worker",
     filterSite:"Site",
@@ -229,6 +247,20 @@ function fillSelects(){
   const reportMonth = document.getElementById("reportMonth");
   if(reportMonth && !reportMonth.value){
     reportMonth.value = new Date().toISOString().slice(0,7);
+  }
+
+
+  const calendarWorker = document.getElementById("calendarWorker");
+  if(calendarWorker){
+    const selectedCalendarWorker = calendarWorker.value;
+    calendarWorker.innerHTML = `<option value="">${t[lang].workerPlaceholder}</option>` +
+      WORKERS.map(name => `<option value="${name}">${name}</option>`).join("");
+    if(selectedCalendarWorker) calendarWorker.value = selectedCalendarWorker;
+  }
+
+  const calendarMonth = document.getElementById("calendarMonth");
+  if(calendarMonth && !calendarMonth.value){
+    calendarMonth.value = new Date().toISOString().slice(0,7);
   }
 
   const filterWorker = document.getElementById("filterWorker");
@@ -296,6 +328,7 @@ function setLang(l){
   renderSiteDashboard();
   renderRecords();
   renderMonthlyReport(false);
+  renderWorkerCalendar(false);
 }
 
 function renderAdminState(){
@@ -464,6 +497,8 @@ function startAdminListener(){
     renderDashboard();
     renderRecords();
     renderMonthlyReport(false);
+    renderWorkerCalendar(false);
+  renderWorkerCalendar(false);
   }, err => {
     console.error(err);
     document.getElementById("syncStatus").innerText = "Firestore error";
@@ -616,6 +651,85 @@ function renderSiteDashboard(){
         ${rows}
       </div>`;
   }).join("");
+}
+
+
+function getWorkerMonthRecords(worker, month){
+  return currentRecords
+    .filter(r => !worker || r.pracovnik === worker)
+    .filter(r => (r.dateISO || "").slice(0,7) === month)
+    .slice()
+    .sort((a,b) => (a.createdAtLocal || "").localeCompare(b.createdAtLocal || ""));
+}
+
+function buildCalendarDays(records){
+  const days = {};
+  records.forEach(r => {
+    const day = r.dateISO || "";
+    if(!day) return;
+    if(!days[day]) days[day] = [];
+    days[day].push(r);
+  });
+
+  return Object.keys(days).sort().map(day => {
+    const recs = days[day].sort((a,b) => (a.createdAtLocal || "").localeCompare(b.createdAtLocal || ""));
+    let openStart = null;
+    let minutes = 0;
+    const pairs = [];
+    let site = recs[0] ? (recs[0].stavba || "") : "";
+
+    recs.forEach(r => {
+      if(r.stavba) site = r.stavba;
+      if(r.typ === "start") openStart = r;
+      if(r.typ === "end"){
+        if(openStart){
+          const mins = minutesBetween(openStart.createdAtLocal, r.createdAtLocal);
+          minutes += mins;
+          pairs.push({ start: openStart.cas || "", end: r.cas || "", minutes: mins });
+          openStart = null;
+        } else {
+          pairs.push({ start: "-", end: r.cas || "", minutes: 0 });
+        }
+      }
+    });
+
+    if(openStart){
+      const mins = minutesBetween(openStart.createdAtLocal, new Date().toISOString());
+      minutes += mins;
+      pairs.push({ start: openStart.cas || "", end: "-", minutes: mins, open: true });
+    }
+
+    return { day, site, pairs, minutes, problem: !!openStart };
+  });
+}
+
+function renderWorkerCalendar(showEmpty = true){
+  const box = document.getElementById("workerCalendar");
+  if(!box || !isAdmin) return;
+  const workerEl = document.getElementById("calendarWorker");
+  const monthEl = document.getElementById("calendarMonth");
+  const worker = workerEl ? workerEl.value : "";
+  const month = monthEl ? monthEl.value : new Date().toISOString().slice(0,7);
+  if(!worker){
+    box.innerHTML = showEmpty ? `<p>${t[lang].workerPlaceholder}</p>` : "";
+    return;
+  }
+  const records = getWorkerMonthRecords(worker, month);
+  const days = buildCalendarDays(records);
+  if(days.length === 0){
+    box.innerHTML = showEmpty ? `<p>${t[lang].calendarNoData}</p>` : "";
+    return;
+  }
+  const total = days.reduce((sum,d) => sum + d.minutes, 0);
+  box.innerHTML = `
+    <p><b>${worker}</b> — ${month}<br>${t[lang].totalHours}: <b>${formatMinutes(total)}</b> · ${t[lang].reportDays}: <b>${days.length}</b></p>
+    <div class="record">
+      ${days.map(d => `
+        <b>${d.day}</b> — ${d.site || ""}<br>
+        ${d.pairs.map(p => `${t[lang].arrival}: ${p.start} / ${t[lang].departure}: ${p.end} — ${formatMinutes(p.minutes)}`).join("<br>")}<br>
+        ${t[lang].calendarStatus}: <b>${d.problem ? "⚠️ " + t[lang].calendarProblem : "✅ " + t[lang].calendarOk}</b>
+      `).join("<hr>")}
+    </div>`;
 }
 
 function getFilteredRecords(){
