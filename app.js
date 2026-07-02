@@ -27,6 +27,29 @@ const WORKER_PINS = {
   "Milan Sedliak": "7777"
 };
 
+
+const DEFAULT_HOURLY_RATES = {
+  "Mohit Kumar": 0,
+  "Gurwinder Singh": 0,
+  "Pradip Majumder": 0,
+  "Jatinder Singh": 0,
+  "Vlado Hatala": 0,
+  "Fero Maslík": 0,
+  "Milan Sedliak": 0
+};
+
+function getHourlyRates(){
+  try{
+    return { ...DEFAULT_HOURLY_RATES, ...JSON.parse(localStorage.getItem("smurfex_hourly_rates") || "{}") };
+  }catch(e){
+    return { ...DEFAULT_HOURLY_RATES };
+  }
+}
+
+function saveHourlyRatesToStorage(rates){
+  localStorage.setItem("smurfex_hourly_rates", JSON.stringify(rates));
+}
+
 const SITES = [
   "STRABAG letisko",
   "STRABAG nemocnica"
@@ -38,7 +61,7 @@ const SITE_COORDS = {
 };
 
 const GEOFENCE_RADIUS_METERS = 300;
-const DRIVER_EXEMPT_WORKERS = []; // sem môžeme neskôr doplniť mená šoférov
+const DRIVER_EXEMPT_WORKERS = ["Pradip Majumder", "Vlado Hatala"];
 
 const firebaseConfig = {
   apiKey: "AIzaSyD972-SyhAtPi7keb-ivBB3FmAsahuHfs8",
@@ -170,7 +193,18 @@ const t = {
     filteredCount:"Zobrazené záznamy",
     arrival:"Príchod",
     departure:"Odchod",
-    duration:"Trvanie"
+    duration:"Trvanie",
+    driver:"Šofér",
+    driverExempt:"Šofér – výnimka z geofencingu",
+    wageTitle:"Mzdy a hodinové sadzby",
+    wageHint:"Nastav hodinovú sadzbu pracovníka. Sadzby sa ukladajú v tomto admin zariadení.",
+    hourlyRate:"Hodinová sadzba",
+    saveWageRatesBtn:"Uložiť sadzby",
+    wageRatesSaved:"Hodinové sadzby boli uložené.",
+    monthlyWageTitle:"Mesačný výpočet mzdy",
+    wageAmount:"Mzda",
+    totalWage:"Spolu mzda",
+    rateNotSet:"Sadzba nie je nastavená"
   },
   en: {
     title:"Attendance",
@@ -286,7 +320,18 @@ const t = {
     filteredCount:"Shown records",
     arrival:"Arrival",
     departure:"Departure",
-    duration:"Duration"
+    duration:"Duration",
+    driver:"Driver",
+    driverExempt:"Driver – geofencing exception",
+    wageTitle:"Wages and hourly rates",
+    wageHint:"Set an hourly rate for each worker. Rates are saved on this admin device.",
+    hourlyRate:"Hourly rate",
+    saveWageRatesBtn:"Save rates",
+    wageRatesSaved:"Hourly rates have been saved.",
+    monthlyWageTitle:"Monthly wage calculation",
+    wageAmount:"Wage",
+    totalWage:"Total wage",
+    rateNotSet:"Rate is not set"
 
   },
   hi: {
@@ -403,7 +448,18 @@ const t = {
     filteredCount:"दिखाए गए रिकॉर्ड",
     arrival:"आगमन",
     departure:"प्रस्थान",
-    duration:"अवधि"
+    duration:"अवधि",
+    driver:"ड्राइवर",
+    driverExempt:"ड्राइवर – जियोफेंसिंग छूट",
+    wageTitle:"वेतन और प्रति घंटा दर",
+    wageHint:"हर कर्मचारी की प्रति घंटा दर सेट करें। दरें इस एडमिन डिवाइस में सेव होती हैं।",
+    hourlyRate:"प्रति घंटा दर",
+    saveWageRatesBtn:"दरें सेव करें",
+    wageRatesSaved:"प्रति घंटा दरें सेव हो गई हैं।",
+    monthlyWageTitle:"मासिक वेतन गणना",
+    wageAmount:"वेतन",
+    totalWage:"कुल वेतन",
+    rateNotSet:"दर सेट नहीं है"
   }
 };
 
@@ -416,7 +472,7 @@ function fillSelects(){
   const selectedSite = siteSelect.value;
 
   workerSelect.innerHTML = `<option value="">${t[lang].workerPlaceholder}</option>` +
-    WORKERS.map(name => `<option value="${name}">${name}</option>`).join("");
+    WORKERS.map(name => `<option value="${name}">${name}${DRIVER_EXEMPT_WORKERS.includes(name) ? " 🚛" : ""}</option>`).join("");
 
   siteSelect.innerHTML = `<option value="">${t[lang].sitePlaceholder}</option>` +
     SITES.map(site => `<option value="${site}">${site}</option>`).join("");
@@ -523,6 +579,7 @@ function setLang(l){
   renderRecords();
   renderMonthlyReport(false);
   renderWorkerCalendar(false);
+  renderWageSettings();
 }
 
 function renderAdminState(){
@@ -534,7 +591,7 @@ function renderAdminState(){
   adminPanel.style.display = isAdmin ? "block" : "none";
   adminLoginBtn.style.display = isAdmin ? "none" : "inline-block";
   adminLogoutBtn.style.display = isAdmin ? "inline-block" : "none";
-  if(isAdmin){ startAdminListener(); startRequestListener(); }
+  if(isAdmin){ startAdminListener(); startRequestListener(); renderWageSettings(); }
 }
 
 function adminLogin(){
@@ -847,6 +904,8 @@ async function saveRecord(type){
     siteLongitude: SITE_COORDS[site] ? SITE_COORDS[site].lng : null,
     geofenceDistance: geofence.distance,
     geofenceRadius: GEOFENCE_RADIUS_METERS,
+    isDriver: DRIVER_EXEMPT_WORKERS.includes(worker),
+    driverExempt: DRIVER_EXEMPT_WORKERS.includes(worker),
     photoData: photoData,
     createdAt: firebase.firestore.FieldValue.serverTimestamp()
   };
@@ -859,7 +918,7 @@ async function saveRecord(type){
     document.getElementById("workerPin").value = "";
     const selfieInput = document.getElementById("selfie");
     if(selfieInput) selfieInput.value = "";
-    document.getElementById("status").innerText = t[lang][type] + " " + t[lang].saved + ": " + record.cas + " — " + t[lang].geofenceOk;
+    document.getElementById("status").innerText = t[lang][type] + " " + t[lang].saved + ": " + record.cas + " — " + (record.isDriver ? t[lang].driverExempt : t[lang].geofenceOk);
   }catch(e){
     console.error(e);
     alert(t[lang].saveError);
@@ -1153,6 +1212,7 @@ function renderRecords(){
       <b>${t[lang][r.typ] || r.typ}</b> – ${r.pracovnik || ""}<br>
       ${r.datum || ""} ${r.cas || ""}<br>
       ${t[lang].site}: ${r.stavba || ""}<br>
+      ${r.isDriver ? `🚛 ${t[lang].driverExempt}<br>` : ""}
       ${r.mapUrl ? `${t[lang].location}: <a href="${r.mapUrl}" target="_blank" rel="noopener">${t[lang].map}</a> (${r.accuracy || "?"} m)<br>` : ""}
       ${r.photoData ? `${t[lang].photo}:<br><img src="${r.photoData}" alt="${t[lang].photo}" style="width:100%;max-width:220px;border-radius:12px;margin-top:8px;">` : ""}
     </div>`).join("");
@@ -1224,9 +1284,15 @@ function renderMonthlyReport(showEmpty = true){
     box.innerHTML = showEmpty ? `<p>${t[lang].reportNoData}</p>` : "";
     return;
   }
+  const wageRows = buildWageSummary(report.rows);
+  const totalWage = wageRows.reduce((sum, w) => sum + (w.amount || 0), 0);
   box.innerHTML = `
     <p><b>${t[lang].reportGenerated}</b>: ${report.month}</p>
-    <p>${t[lang].totalHours}: <b>${formatMinutes(report.total)}</b><br>${t[lang].reportDays}: <b>${report.days}</b></p>
+    <p>${t[lang].totalHours}: <b>${formatMinutes(report.total)}</b><br>${t[lang].reportDays}: <b>${report.days}</b><br>${t[lang].totalWage}: <b>${formatMoney(totalWage)}</b></p>
+    <div class="record">
+      <b>${t[lang].monthlyWageTitle}</b><br>
+      ${wageRows.map(w => `${w.worker}: ${formatMinutes(w.minutes)} × ${w.rate ? formatMoney(w.rate) : t[lang].rateNotSet} = <b>${formatMoney(w.amount)}</b>`).join("<br>")}
+    </div>
     <div class="record">
       ${report.rows.map(r => `
         <b>${r.worker}</b> — ${r.site}<br>
@@ -1241,14 +1307,17 @@ function printMonthlyReport(){
   const report = getMonthlySummary();
   if(report.rows.length === 0){alert(t[lang].reportNoData); return;}
   const title = `Smurfex - ${t[lang].reportTitle} ${report.month}`;
+  const wageRows = buildWageSummary(report.rows);
+  const totalWage = wageRows.reduce((sum, w) => sum + (w.amount || 0), 0);
   const html = `<!doctype html><html><head><meta charset="utf-8"><title>${title}</title>
     <style>body{font-family:Arial,sans-serif;padding:24px;color:#111} h1{margin-bottom:4px} table{width:100%;border-collapse:collapse;margin-top:18px} th,td{border:1px solid #999;padding:8px;text-align:left;font-size:13px} th{background:#eee}.sum{margin-top:12px;font-size:16px}</style>
     </head><body>
     <h1>Smurfex s.r.o. - ${t[lang].reportTitle}</h1>
     <div>${t[lang].reportMonth}: <b>${report.month}</b></div>
     <div>${t[lang].reportWorker}: <b>${report.worker || t[lang].allWorkers}</b></div>
-    <div class="sum">${t[lang].totalHours}: <b>${formatMinutes(report.total)}</b> | ${t[lang].reportDays}: <b>${report.days}</b></div>
-    <table><thead><tr><th>Dátum</th><th>Pracovník</th><th>Stavba</th><th>${t[lang].arrival}</th><th>${t[lang].departure}</th><th>${t[lang].duration}</th></tr></thead><tbody>
+    <div class="sum">${t[lang].totalHours}: <b>${formatMinutes(report.total)}</b> | ${t[lang].reportDays}: <b>${report.days}</b> | ${t[lang].totalWage}: <b>${formatMoney(totalWage)}</b></div>
+    <h2>${t[lang].monthlyWageTitle}</h2><table><thead><tr><th>Pracovník</th><th>${t[lang].duration}</th><th>${t[lang].hourlyRate}</th><th>${t[lang].wageAmount}</th></tr></thead><tbody>${wageRows.map(w => `<tr><td>${w.worker}</td><td>${formatMinutes(w.minutes)}</td><td>${w.rate ? formatMoney(w.rate) : "-"}</td><td>${formatMoney(w.amount)}</td></tr>`).join("")}</tbody></table>
+    <h2>${t[lang].reportTitle}</h2><table><thead><tr><th>Dátum</th><th>Pracovník</th><th>Stavba</th><th>${t[lang].arrival}</th><th>${t[lang].departure}</th><th>${t[lang].duration}</th></tr></thead><tbody>
     ${report.rows.map(r => `<tr><td>${r.date}</td><td>${r.worker}</td><td>${r.site}</td><td>${r.startTime}</td><td>${r.endTime}</td><td>${formatMinutes(r.minutes)}</td></tr>`).join("")}
     </tbody></table>
     <script>window.onload=function(){window.print();}</script></body></html>`;
@@ -1264,7 +1333,9 @@ function exportMonthlyCSV(){
   if(report.rows.length === 0){alert(t[lang].reportNoData); return;}
   const header = "Date;Worker;Site;Arrival;Departure;Minutes;Duration\n";
   const rows = report.rows.map(r => `${r.date};${r.worker};${r.site};${r.startTime};${r.endTime};${r.minutes};${formatMinutes(r.minutes)}`).join("\n");
-  const blob = new Blob([header + rows], {type:"text/csv;charset=utf-8"});
+  const wageRows = buildWageSummary(report.rows);
+  const wageSection = "\n\nWorker;Minutes;Duration;Hourly rate;Wage\n" + wageRows.map(w => `${w.worker};${w.minutes};${formatMinutes(w.minutes)};${w.rate || 0};${w.amount.toFixed(2)}`).join("\n");
+  const blob = new Blob([header + rows + wageSection], {type:"text/csv;charset=utf-8"});
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
@@ -1288,6 +1359,56 @@ function exportCSV(){
   a.download = "smurfex-attendance-online.csv";
   a.click();
   URL.revokeObjectURL(url);
+}
+
+function renderWageSettings(){
+  const box = document.getElementById("wageSettings");
+  if(!box || !isAdmin) return;
+  const rates = getHourlyRates();
+  box.innerHTML = `
+    <p class="sub">${t[lang].wageHint}</p>
+    ${WORKERS.map(w => `
+      <div class="record">
+        <b>${w}${DRIVER_EXEMPT_WORKERS.includes(w) ? " 🚛" : ""}</b><br>
+        ${DRIVER_EXEMPT_WORKERS.includes(w) ? `<span>${t[lang].driverExempt}</span><br>` : ""}
+        <label>${t[lang].hourlyRate} (€ / h)</label>
+        <input class="wageRateInput" data-worker="${w}" type="number" min="0" step="0.01" value="${rates[w] || ""}" placeholder="0.00">
+      </div>
+    `).join("")}
+    <button class="small" onclick="saveWageRates()">${t[lang].saveWageRatesBtn}</button>
+    <p id="wageStatus" class="sub"></p>
+  `;
+}
+
+function saveWageRates(){
+  if(!isAdmin) return;
+  const rates = {};
+  document.querySelectorAll(".wageRateInput").forEach(input => {
+    const worker = input.dataset.worker;
+    const value = parseFloat(String(input.value).replace(",", "."));
+    rates[worker] = isNaN(value) ? 0 : value;
+  });
+  saveHourlyRatesToStorage(rates);
+  const status = document.getElementById("wageStatus");
+  if(status) status.innerText = t[lang].wageRatesSaved;
+  renderMonthlyReport(false);
+}
+
+function buildWageSummary(rows){
+  const rates = getHourlyRates();
+  const summary = {};
+  rows.forEach(r => {
+    if(!summary[r.worker]) summary[r.worker] = { worker:r.worker, minutes:0, rate:rates[r.worker] || 0, amount:0 };
+    summary[r.worker].minutes += r.minutes || 0;
+  });
+  Object.values(summary).forEach(s => {
+    s.amount = (s.minutes / 60) * (s.rate || 0);
+  });
+  return Object.values(summary);
+}
+
+function formatMoney(value){
+  return `${Number(value || 0).toFixed(2)} €`;
 }
 
 async function clearRecords(){
