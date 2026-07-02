@@ -1691,8 +1691,31 @@ async function clearRecords(){
   await batch.commit();
 }
 
+const APP_VERSION = "1.0.9";
+
 if("serviceWorker" in navigator){
-  navigator.serviceWorker.register("sw.js");
+  let refreshing = false;
+  navigator.serviceWorker.register("sw.js?v=cache-clean-v2").then(reg => {
+    reg.update();
+    if(reg.waiting){
+      reg.waiting.postMessage({type:"SKIP_WAITING"});
+    }
+    reg.addEventListener("updatefound", () => {
+      const newWorker = reg.installing;
+      if(!newWorker) return;
+      newWorker.addEventListener("statechange", () => {
+        if(newWorker.state === "installed" && navigator.serviceWorker.controller){
+          newWorker.postMessage({type:"SKIP_WAITING"});
+        }
+      });
+    });
+  }).catch(console.error);
+
+  navigator.serviceWorker.addEventListener("controllerchange", () => {
+    if(refreshing) return;
+    refreshing = true;
+    window.location.reload();
+  });
 }
 
 ensurePinInput();
