@@ -1,41 +1,172 @@
 <!doctype html>
 <html lang="sk">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Smurfex Dochádzka / Attendance</title>
-  <meta name="theme-color" content="#56b9e8">
-  <link rel="manifest" href="manifest.json">
-  <link rel="icon" href="icon-192.png">
-  <link rel="stylesheet" href="style.css">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Smurfex s.r.o. | Stavebné, zemné a dopravné služby</title>
+  <meta name="description" content="Smurfex s.r.o. – spoľahlivý partner pre stavebné, zemné, búracie a dopravné práce. Rýchly kontakt, férová spolupráca a profesionálne riešenia pre firmy aj súkromné projekty." />
+  <meta name="theme-color" content="#075fae" />
+  <meta property="og:title" content="Smurfex s.r.o. | Stavebné, zemné a dopravné služby" />
+  <meta property="og:description" content="Profesionálne stavebné riešenia, zemné práce, autodoprava, betón a spolupráca pre firmy." />
+  <meta property="og:type" content="website" />
+  <meta property="og:image" content="logo-smurfex.png" />
+  <link rel="icon" href="logo-smurfex.png" />
+  <link rel="manifest" href="site.webmanifest" />
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <main class="app">
-    <section class="card">
-      <img src="logo.png" class="logo" alt="Smurfex s.r.o.">
-      <div class="lang">
-        <button class="langBtn active" onclick="setLang('sk')" id="btn-sk">SK</button>
-        <button class="langBtn" onclick="setLang('en')" id="btn-en">EN</button>
+  <header class="site-header" id="top">
+    <a class="brand" href="#top" aria-label="Smurfex domov">
+      <img src="logo-smurfex.png" alt="Smurfex s.r.o." />
+    </a>
+    <nav class="desktop-nav" aria-label="Hlavné menu">
+      <a href="#sluzby">Služby</a>
+      <a href="#pre-firmy">Pre firmy</a>
+      <a href="#kariera">Kariéra</a>
+      <a href="#kontakt">Kontakt</a>
+    </nav>
+    <a class="header-call" href="tel:0911526483">
+      <span>Dispečing</span>
+      <strong>0911 52 64 83</strong>
+    </a>
+    <button class="menu-btn" id="menuBtn" aria-label="Otvoriť menu" type="button">Menu</button>
+  </header>
+
+  <div class="mobile-menu" id="mobileMenu" aria-label="Mobilné menu">
+    <a href="#sluzby">Služby</a>
+    <a href="#pre-firmy">Pre firmy</a>
+    <a href="#kariera">Kariéra</a>
+    <a href="#kontakt">Kontakt</a>
+  </div>
+
+  <main>
+    <section class="hero">
+      <div class="hero-shape one"></div>
+      <div class="hero-shape two"></div>
+      <div class="hero-content">
+        <p class="eyebrow">Smurfex s.r.o. • Banská Bystrica • Slovensko</p>
+        <h1>Stavebný partner, na ktorého sa dá spoľahnúť.</h1>
+        <p class="lead">Zemné práce, stavebné práce, betón, autodoprava a búracie práce pre firmy, investorov, developerov aj súkromné projekty.</p>
+        <div class="hero-actions">
+          <a class="btn primary" href="tel:0911526483">Zavolať dispečing</a>
+          <a class="btn secondary" href="#kontakt">Vyžiadať ponuku</a>
+        </div>
+        <div class="proof-row" aria-label="Výhody spolupráce">
+          <span>Rýchla reakcia</span>
+          <span>Jasná dohoda</span>
+          <span>Férový prístup</span>
+          <span>Firemná spolupráca</span>
+        </div>
       </div>
-      <h1 data-i18n="title">Dochádzka</h1>
-      <p class="sub" data-i18n="subtitle">Jednoduchá evidencia príchodu a odchodu</p>
-      <label data-i18n="workerLabel">Meno pracovníka</label>
-      <input id="worker" data-i18n-placeholder="workerPlaceholder" placeholder="napr. Ján Novák">
-      <label data-i18n="siteLabel">Stavba</label>
-      <input id="site" data-i18n-placeholder="sitePlaceholder" placeholder="napr. STRABAG / Nitra">
-      <div class="buttons">
-        <button class="start" onclick="saveRecord('start')" data-i18n="startBtn">PRIŠIEL SOM</button>
-        <button class="end" onclick="saveRecord('end')" data-i18n="endBtn">ODCHÁDZAM</button>
-      </div>
-      <p id="status"></p>
+      <aside class="hero-card">
+        <p>Pre zákazníkov</p>
+        <h2>Jednoduchý kontakt. Jasné riešenie. Profesionálny výsledok.</h2>
+        <ul>
+          <li>Obhliadka a nacenenie podľa dohody</li>
+          <li>Koordinácia prác so stavbou</li>
+          <li>Stavebná logistika a realizácia</li>
+          <li>Dlhodobá spolupráca pre firmy</li>
+        </ul>
+      </aside>
     </section>
-    <section class="card">
-      <h2 data-i18n="todayTitle">Dnešné záznamy</h2>
-      <div id="records"></div>
-      <button class="small" onclick="exportCSV()" data-i18n="exportBtn">Export CSV</button>
-      <button class="small danger" onclick="clearRecords()" data-i18n="clearBtn">Vymazať záznamy</button>
+
+    <section class="metrics" aria-label="Prehľad spoločnosti">
+      <div><strong>01</strong><span>rýchly kontakt</span></div>
+      <div><strong>06</strong><span>oblastí služieb</span></div>
+      <div><strong>B2B</strong><span>spolupráca s firmami</span></div>
+      <div><strong>SK</strong><span>pôsobnosť podľa projektu</span></div>
+    </section>
+
+    <section class="intro section" id="pre-firmy">
+      <div class="intro-grid">
+        <div>
+          <p class="section-kicker">Pre veľké zákazky</p>
+          <h2>Web postavený tak, aby budoval dôveru ešte pred prvým telefonátom.</h2>
+        </div>
+        <p>Smurfex sa prezentuje ako stabilný partner pre firmy, ktoré potrebujú spoľahlivé zabezpečenie stavebných prác, dopravy a koordinácie na stavbe. Dôraz je na serióznosť, rýchlu komunikáciu a profesionálne vystupovanie.</p>
+      </div>
+    </section>
+
+    <section class="section" id="sluzby">
+      <div class="section-heading">
+        <p>Služby</p>
+        <h2>Čo vieme zabezpečiť</h2>
+      </div>
+      <div class="services-grid">
+        <article><span>01</span><h3>Zemné a výkopové práce</h3><p>Výkopy, zásypy, úpravy terénu, príprava podkladov a práce podľa potreby stavby.</p></article>
+        <article><span>02</span><h3>Betón a čerpanie</h3><p>Zabezpečenie betónu, prepravy a čerpania pre projekty rôzneho rozsahu.</p></article>
+        <article><span>03</span><h3>Autodoprava</h3><p>Stavebná doprava, presuny materiálu a operatívna logistika podľa dohody.</p></article>
+        <article><span>04</span><h3>Stavebné práce</h3><p>Pomocné a odborné stavebné práce, betonáže, spevnené plochy a súvisiace výkony.</p></article>
+        <article><span>05</span><h3>Búracie práce</h3><p>Búranie, demontáže, odvoz materiálu a príprava priestoru na ďalšiu realizáciu.</p></article>
+        <article><span>06</span><h3>Subdodávky pre firmy</h3><p>Kapacitná podpora pre stavebné firmy, generálnych dodávateľov a investorov.</p></article>
+      </div>
+    </section>
+
+    <section class="dark-section">
+      <div class="section-heading light">
+        <p>Prečo spolupracovať</p>
+        <h2>Silná prezentácia pre zákazníkov, partnerov aj dodávateľov.</h2>
+      </div>
+      <div class="value-grid">
+        <div><h3>Profesionálny prvý dojem</h3><p>Stránka pôsobí moderne, dôveryhodne a seriózne – presne tak, ako má pôsobiť firma pri väčších zákazkách.</p></div>
+        <div><h3>Rýchla cesta ku kontaktu</h3><p>Telefón, dispečing a dopyt sú viditeľné hneď. Návštevník nemusí nič hľadať.</p></div>
+        <div><h3>Jasne vysvetlené služby</h3><p>Služby sú rozdelené prehľadne, bez zbytočného textu a s dôrazom na rozhodovanie zákazníka.</p></div>
+      </div>
+    </section>
+
+    <section class="section careers" id="kariera">
+      <div>
+        <p class="eyebrow">Kariéra a spolupráca</p>
+        <h2>Firma, kde ľudia chcú pracovať a partneri chcú spolupracovať.</h2>
+        <p>Smurfex chce pôsobiť ako férová, stabilná a normálne komunikujúca firma. Web má prilákať nielen zákazky, ale aj dobrých pracovníkov, vodičov, strojníkov, majstrov a subdodávateľov.</p>
+      </div>
+      <div class="career-card">
+        <h3>Chceš pracovať alebo spolupracovať?</h3>
+        <p>Ozvi sa telefonicky alebo pošli správu. Dohodneme sa rýchlo a férovo.</p>
+        <a class="btn primary" href="tel:0911526483">Zavolať</a>
+      </div>
+    </section>
+
+    <section class="section process">
+      <div class="section-heading">
+        <p>Postup</p>
+        <h2>Ako prebieha spolupráca</h2>
+      </div>
+      <div class="process-grid">
+        <div><strong>1</strong><h3>Kontakt</h3><p>Zavoláte alebo pošlete dopyt.</p></div>
+        <div><strong>2</strong><h3>Dohoda</h3><p>Upresníme rozsah, termín a podmienky.</p></div>
+        <div><strong>3</strong><h3>Realizácia</h3><p>Zabezpečíme prácu podľa dohody.</p></div>
+        <div><strong>4</strong><h3>Spolupráca</h3><p>Pri spokojnosti pokračujeme aj na ďalších projektoch.</p></div>
+      </div>
+    </section>
+
+    <section class="contact" id="kontakt">
+      <div class="contact-info">
+        <p class="eyebrow">Kontakt</p>
+        <h2>Pošlite dopyt alebo zavolajte dispečing.</h2>
+        <p>Smurfex, s.r.o.<br>Krivánska 14, 974 11 Banská Bystrica</p>
+        <p><strong>Telefón:</strong> <a href="tel:0903553435">0903 55 34 35</a><br><strong>Dispečing:</strong> <a href="tel:0911526483">0911 52 64 83</a><br><strong>E-mail:</strong> <a href="mailto:smurfex@smurfex.sk">smurfex@smurfex.sk</a></p>
+      </div>
+      <form class="contact-form" action="mailto:smurfex@smurfex.sk" method="post" enctype="text/plain">
+        <input name="meno" type="text" placeholder="Meno / firma" required />
+        <input name="telefon" type="tel" placeholder="Telefón" required />
+        <input name="email" type="email" placeholder="E-mail" />
+        <textarea name="sprava" placeholder="Čo potrebujete naceniť?" rows="6" required></textarea>
+        <button class="btn primary" type="submit">Odoslať dopyt</button>
+        <small>Formulár otvorí e-mailového klienta. Na plnohodnotné odosielanie cez web je potrebné napojiť hostingový formulár alebo e-mail službu.</small>
+      </form>
     </section>
   </main>
+
+  <footer>
+    <strong>Smurfex, s.r.o.</strong>
+    <span>© 2026 | Stavebné, zemné a dopravné služby</span>
+  </footer>
+
+  <div class="mobile-cta" aria-label="Rýchly kontakt">
+    <a href="tel:0911526483">Zavolať</a>
+    <a href="#kontakt">Ponuka</a>
+  </div>
   <script src="app.js"></script>
 </body>
 </html>

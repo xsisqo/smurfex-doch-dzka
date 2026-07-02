@@ -1,19 +1,16 @@
-SMURFEX PRO update
+SMURFEX WEB - pripravené na nahratie
 
-Obsah:
-- geofencing 3 km pre bežných pracovníkov
-- šoféri Pradip Majumder a Vlado Hatala majú výnimku z blokovania geofencingu
-- pripravená výnimka pre majstra (MASTER_EXEMPT_WORKERS v app.js)
-- automatická dochádzka: príchod po 5 min v zóne, odchod po 15 min mimo zóny
-- šoféri majú +1 platenú hodinu denne vo výpočte miezd
-- hodinovky a obedy zostávajú nastavené podľa zadania
+Nahrajte na hosting celý obsah priečinka smurfex_web:
+- index.html
+- style.css
+- app.js
+- logo-smurfex.png
+- robots.txt
+- sitemap.xml
+- site.webmanifest
 
 Dôležité:
-Automatická dochádzka v PWA funguje spoľahlivo hlavne keď je aplikácia otvorená alebo aktívna v mobile. Pre úplné pozadie by bola potrebná natívna Android aplikácia alebo pokročilé nastavenie notifikácií.
-
-Nahrať na GitHub:
-- index.html
-- app.js
-- sw.js
-
-Potom otvoriť aplikáciu a spraviť Ctrl + F5 / obnoviť cache.
+1. Na webe musí byť hlavný súbor presne index.html.
+2. Súbory musia byť v koreňovom priečinku webu, nie vnorené v ďalšom priečinku.
+3. Kontaktný formulár je zatiaľ cez mailto, čiže otvorí e-mailového klienta.
+4. Pre plne profesionálne odosielanie formulára treba napojiť hostingový formulár, PHP alebo službu typu Formspree/Netlify Forms.

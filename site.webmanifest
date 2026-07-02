@@ -1,0 +1,11 @@
+{
+  "name": "Smurfex s.r.o.",
+  "short_name": "Smurfex",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#075fae",
+  "icons": [
+    {"src": "logo-smurfex.png", "sizes": "any", "type": "image/png"}
+  ]
+}
