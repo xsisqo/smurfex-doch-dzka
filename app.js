@@ -82,8 +82,16 @@ const SITE_COORDS = {
   "STRABAG nemocnica": { lat: 48.744191282, lng: 19.119472504 }
 };
 
-const GEOFENCE_RADIUS_METERS = 300;
+const GEOFENCE_RADIUS_METERS = 3000;
+const AUTO_CHECKIN_DELAY_MS = 5 * 60 * 1000;
+const AUTO_CHECKOUT_DELAY_MS = 15 * 60 * 1000;
 const DRIVER_EXEMPT_WORKERS = ["Pradip Majumder", "Vlado Hatala"];
+const MASTER_EXEMPT_WORKERS = [];
+const DRIVER_DAILY_BONUS_MINUTES = 60;
+let autoWatchId = null;
+let autoInsideSince = null;
+let autoOutsideSince = null;
+let autoLastActionKey = localStorage.getItem("smurfex_auto_last_action") || "";
 
 const firebaseConfig = {
   apiKey: "AIzaSyD972-SyhAtPi7keb-ivBB3FmAsahuHfs8",
@@ -823,7 +831,7 @@ function distanceMeters(lat1, lng1, lat2, lng2){
 
 function checkGeofence(worker, site, gps){
   const sitePosition = SITE_COORDS[site];
-  if(!sitePosition || DRIVER_EXEMPT_WORKERS.includes(worker)){
+  if(!sitePosition || DRIVER_EXEMPT_WORKERS.includes(worker) || MASTER_EXEMPT_WORKERS.includes(worker)){
     return { ok: true, distance: null };
   }
   const distance = distanceMeters(gps.lat, gps.lng, sitePosition.lat, sitePosition.lng);
@@ -940,6 +948,7 @@ async function saveRecord(type){
     geofenceRadius: GEOFENCE_RADIUS_METERS,
     isDriver: DRIVER_EXEMPT_WORKERS.includes(worker),
     driverExempt: DRIVER_EXEMPT_WORKERS.includes(worker),
+    isMaster: MASTER_EXEMPT_WORKERS.includes(worker),
     photoData: photoData,
     createdAt: firebase.firestore.FieldValue.serverTimestamp()
   };
@@ -1327,7 +1336,7 @@ function renderMonthlyReport(showEmpty = true){
     <p>${t[lang].grossHours}: <b>${formatMinutes(report.total)}</b><br>${t[lang].totalLunch}: <b>${formatMinutes(totalLunch)}</b><br>${t[lang].paidHours}: <b>${formatMinutes(totalPaid)}</b><br>${t[lang].reportDays}: <b>${report.days}</b><br>${t[lang].totalWage}: <b>${formatMoney(totalWage)}</b></p>
     <div class="record">
       <b>${t[lang].monthlyWageTitle}</b><br>
-      ${wageRows.map(w => `${w.worker}: ${t[lang].grossHours} ${formatMinutes(w.minutes)} - ${t[lang].lunchBreak} ${formatMinutes(w.lunchTotal)} = ${t[lang].paidHours} ${formatMinutes(w.paidMinutes)} × ${w.rate ? formatMoney(w.rate) : t[lang].rateNotSet} = <b>${formatMoney(w.amount)}</b>`).join("<br>")}
+      ${wageRows.map(w => `${w.worker}: ${t[lang].grossHours} ${formatMinutes(w.minutes)} - ${t[lang].lunchBreak} ${formatMinutes(w.lunchTotal)}${w.driverBonusMinutes ? ` + 🚛 bonus ${formatMinutes(w.driverBonusMinutes)}` : ""} = ${t[lang].paidHours} ${formatMinutes(w.paidMinutes)} × ${w.rate ? formatMoney(w.rate) : t[lang].rateNotSet} = <b>${formatMoney(w.amount)}</b>`).join("<br>")}
     </div>
     <div class="record">
       ${report.rows.map(r => `
@@ -1370,7 +1379,7 @@ function exportMonthlyCSV(){
   const header = "Date;Worker;Site;Arrival;Departure;Minutes;Duration\n";
   const rows = report.rows.map(r => `${r.date};${r.worker};${r.site};${r.startTime};${r.endTime};${r.minutes};${formatMinutes(r.minutes)}`).join("\n");
   const wageRows = buildWageSummary(report.rows);
-  const wageSection = "\n\nWorker;Gross minutes;Gross duration;Lunch minutes;Paid minutes;Paid duration;Hourly rate;Wage\n" + wageRows.map(w => `${w.worker};${w.minutes};${formatMinutes(w.minutes)};${w.lunchTotal};${w.paidMinutes};${formatMinutes(w.paidMinutes)};${w.rate || 0};${w.amount.toFixed(2)}`).join("\n");
+  const wageSection = "\n\nWorker;Gross minutes;Gross duration;Lunch minutes;Driver bonus minutes;Paid minutes;Paid duration;Hourly rate;Wage\n" + wageRows.map(w => `${w.worker};${w.minutes};${formatMinutes(w.minutes)};${w.lunchTotal};${w.driverBonusMinutes || 0};${w.paidMinutes};${formatMinutes(w.paidMinutes)};${w.rate || 0};${w.amount.toFixed(2)}`).join("\n");
   const blob = new Blob([header + rows + wageSection], {type:"text/csv;charset=utf-8"});
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
@@ -1444,14 +1453,40 @@ function buildWageSummary(rows){
   const rates = getHourlyRates();
   const lunches = getLunchMinutes();
   const summary = {};
+  const driverDays = {};
+
   rows.forEach(r => {
     const lunch = Math.min(r.minutes || 0, lunches[r.worker] || 0);
     const paid = Math.max(0, (r.minutes || 0) - lunch);
-    if(!summary[r.worker]) summary[r.worker] = { worker:r.worker, minutes:0, lunchTotal:0, paidMinutes:0, rate:rates[r.worker] || 0, amount:0 };
+    if(!summary[r.worker]){
+      summary[r.worker] = {
+        worker:r.worker,
+        minutes:0,
+        lunchTotal:0,
+        driverBonusMinutes:0,
+        paidMinutes:0,
+        rate:rates[r.worker] || 0,
+        amount:0
+      };
+    }
     summary[r.worker].minutes += r.minutes || 0;
     summary[r.worker].lunchTotal += lunch;
     summary[r.worker].paidMinutes += paid;
+
+    if(DRIVER_EXEMPT_WORKERS.includes(r.worker) && r.date){
+      const key = `${r.worker}-${r.date}`;
+      driverDays[key] = r.worker;
+    }
   });
+
+  Object.values(driverDays).forEach(worker => {
+    if(!summary[worker]){
+      summary[worker] = { worker, minutes:0, lunchTotal:0, driverBonusMinutes:0, paidMinutes:0, rate:rates[worker] || 0, amount:0 };
+    }
+    summary[worker].driverBonusMinutes += DRIVER_DAILY_BONUS_MINUTES;
+    summary[worker].paidMinutes += DRIVER_DAILY_BONUS_MINUTES;
+  });
+
   Object.values(summary).forEach(s => {
     s.amount = (s.paidMinutes / 60) * (s.rate || 0);
   });
@@ -1460,6 +1495,190 @@ function buildWageSummary(rows){
 
 function formatMoney(value){
   return `${Number(value || 0).toFixed(2)} €`;
+}
+
+
+function isWorkerExemptFromGeofence(worker){
+  return DRIVER_EXEMPT_WORKERS.includes(worker) || MASTER_EXEMPT_WORKERS.includes(worker);
+}
+
+function getAutoStatusBox(){
+  let box = document.getElementById("autoStatusBox");
+  if(!box){
+    const status = document.getElementById("status");
+    box = document.createElement("div");
+    box.id = "autoStatusBox";
+    box.className = "record";
+    box.style.display = "none";
+    if(status && status.parentNode){
+      status.parentNode.insertBefore(box, status.nextSibling);
+    }
+  }
+  return box;
+}
+
+function renderAutoControls(){
+  if(document.getElementById("autoControls")) return;
+  const buttons = document.querySelector(".buttons");
+  if(!buttons || !buttons.parentNode) return;
+  const panel = document.createElement("div");
+  panel.id = "autoControls";
+  panel.className = "record";
+  panel.innerHTML = `
+    <b>📍 Automatická dochádzka</b><br>
+    <span>Príchod po 5 min v zóne, odchod po 15 min mimo zóny. Bežní pracovníci 3 km, šoféri/majster bez blokovania.</span><br>
+    <button class="small" onclick="startAutoAttendance()">Spustiť automatiku</button>
+    <button class="small danger" onclick="stopAutoAttendance(true)">Vypnúť automatiku / odhlásiť</button>
+  `;
+  buttons.parentNode.insertBefore(panel, buttons.nextSibling);
+}
+
+async function getLatestWorkerStatus(worker){
+  const today = getTodayISO();
+  const snap = await recordsCol.where("pracovnik", "==", worker).where("dateISO", "==", today).get();
+  const docs = snap.docs.map(d => d.data()).sort((a,b) => (b.createdAtLocal || "").localeCompare(a.createdAtLocal || ""));
+  return docs[0] ? docs[0].typ : "end";
+}
+
+async function saveAutoRecord(type, worker, site, gps, note){
+  const latest = await getLatestWorkerStatus(worker);
+  if(type === "start" && latest === "start") return false;
+  if(type === "end" && latest !== "start") return false;
+
+  const now = new Date();
+  const sitePosition = SITE_COORDS[site] || null;
+  const distance = sitePosition ? distanceMeters(gps.lat, gps.lng, sitePosition.lat, sitePosition.lng) : null;
+  const record = {
+    datum: now.toLocaleDateString("sk-SK"),
+    cas: now.toLocaleTimeString("sk-SK", {hour:"2-digit", minute:"2-digit"}),
+    dateISO: now.toISOString().slice(0,10),
+    createdAtLocal: now.toISOString(),
+    pracovnik: worker,
+    stavba: site,
+    typ: type,
+    latitude: gps.lat,
+    longitude: gps.lng,
+    accuracy: gps.accuracy,
+    mapUrl: gps.mapUrl,
+    siteLatitude: sitePosition ? sitePosition.lat : null,
+    siteLongitude: sitePosition ? sitePosition.lng : null,
+    geofenceDistance: distance,
+    geofenceRadius: GEOFENCE_RADIUS_METERS,
+    isDriver: DRIVER_EXEMPT_WORKERS.includes(worker),
+    driverExempt: DRIVER_EXEMPT_WORKERS.includes(worker),
+    isMaster: MASTER_EXEMPT_WORKERS.includes(worker),
+    autoAttendance: true,
+    note: note || "Automatická dochádzka",
+    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+  };
+  await recordsCol.add(record);
+  autoLastActionKey = `${worker}-${record.dateISO}-${type}-${record.cas}`;
+  localStorage.setItem("smurfex_auto_last_action", autoLastActionKey);
+  return true;
+}
+
+function startAutoAttendance(){
+  const worker = document.getElementById("worker") ? document.getElementById("worker").value.trim() : "";
+  const site = document.getElementById("site") ? document.getElementById("site").value.trim() : "";
+  const pin = document.getElementById("workerPin") ? document.getElementById("workerPin").value.trim() : "";
+  const box = getAutoStatusBox();
+  if(!worker || !site || !pin){ alert(t[lang].fillAlert || "Vyber pracovníka, stavbu a zadaj PIN."); return; }
+  if(WORKER_PINS[worker] !== pin){ alert(t[lang].wrongWorkerPin || "Nesprávny PIN pracovníka."); return; }
+  if(!navigator.geolocation){ alert("GPS nie je podporované."); return; }
+
+  localStorage.setItem("smurfex_auto_worker", worker);
+  localStorage.setItem("smurfex_auto_site", site);
+  localStorage.setItem("smurfex_auto_enabled", "1");
+
+  if(autoWatchId !== null){ navigator.geolocation.clearWatch(autoWatchId); }
+  autoInsideSince = null;
+  autoOutsideSince = null;
+  box.style.display = "block";
+  box.innerHTML = "📍 Automatická dochádzka je zapnutá. Čakám na GPS...";
+
+  autoWatchId = navigator.geolocation.watchPosition(async pos => {
+    const gps = {
+      lat: pos.coords.latitude,
+      lng: pos.coords.longitude,
+      accuracy: Math.round(pos.coords.accuracy || 0),
+      mapUrl: `https://www.google.com/maps?q=${pos.coords.latitude},${pos.coords.longitude}`
+    };
+    const sitePosition = SITE_COORDS[site];
+    const distance = sitePosition ? distanceMeters(gps.lat, gps.lng, sitePosition.lat, sitePosition.lng) : null;
+    const exempt = isWorkerExemptFromGeofence(worker);
+    const inside = exempt || (distance !== null && distance <= GEOFENCE_RADIUS_METERS);
+    const now = Date.now();
+
+    try{
+      if(inside){
+        autoOutsideSince = null;
+        if(!autoInsideSince) autoInsideSince = now;
+        const remain = Math.max(0, AUTO_CHECKIN_DELAY_MS - (now - autoInsideSince));
+        box.innerHTML = `📍 ${worker} — ${site}<br>${exempt ? "Výnimka: šofér/majster" : "V zóne"}${distance !== null ? ` (${distance} m / ${GEOFENCE_RADIUS_METERS} m)` : ""}<br>Automatický príchod o ${Math.ceil(remain/60000)} min.`;
+        if(now - autoInsideSince >= AUTO_CHECKIN_DELAY_MS){
+          const saved = await saveAutoRecord("start", worker, site, gps, "Automatický príchod po 5 minútach");
+          if(saved) box.innerHTML = `✅ ${worker} bol automaticky prihlásený do práce.`;
+          autoInsideSince = now;
+        }
+      }else{
+        autoInsideSince = null;
+        if(!autoOutsideSince) autoOutsideSince = now;
+        const remain = Math.max(0, AUTO_CHECKOUT_DELAY_MS - (now - autoOutsideSince));
+        box.innerHTML = `📍 ${worker} — mimo zóny (${distance} m / ${GEOFENCE_RADIUS_METERS} m)<br>Automatický odchod o ${Math.ceil(remain/60000)} min.`;
+        if(now - autoOutsideSince >= AUTO_CHECKOUT_DELAY_MS){
+          const saved = await saveAutoRecord("end", worker, site, gps, "Automatický odchod po 15 minútach mimo zóny");
+          if(saved) box.innerHTML = `✅ ${worker} bol automaticky odhlásený z práce.`;
+          autoOutsideSince = now;
+        }
+      }
+    }catch(e){
+      console.error(e);
+      box.innerHTML = "⚠️ Automatická dochádzka: chyba uloženia alebo Firebase pravidiel.";
+    }
+  }, err => {
+    console.error(err);
+    box.innerHTML = "⚠️ Automatická dochádzka potrebuje povolenú polohu.";
+  }, { enableHighAccuracy:true, maximumAge:30000, timeout:20000 });
+}
+
+async function stopAutoAttendance(createCheckout){
+  const worker = localStorage.getItem("smurfex_auto_worker") || (document.getElementById("worker") ? document.getElementById("worker").value.trim() : "");
+  const site = localStorage.getItem("smurfex_auto_site") || (document.getElementById("site") ? document.getElementById("site").value.trim() : "");
+  if(autoWatchId !== null){
+    navigator.geolocation.clearWatch(autoWatchId);
+    autoWatchId = null;
+  }
+  localStorage.removeItem("smurfex_auto_enabled");
+  const box = getAutoStatusBox();
+  box.style.display = "block";
+
+  if(createCheckout && worker && site){
+    try{
+      const gps = await getLocation();
+      const saved = await saveAutoRecord("end", worker, site, gps, "Odchod pri vypnutí automatickej dochádzky");
+      box.innerHTML = saved ? `✅ ${worker} bol odhlásený a automatika je vypnutá.` : "Automatika je vypnutá.";
+    }catch(e){
+      console.error(e);
+      box.innerHTML = "Automatika je vypnutá. Odchod sa nepodarilo uložiť bez GPS.";
+    }
+  }else{
+    box.innerHTML = "Automatická dochádzka je vypnutá.";
+  }
+}
+
+function resumeAutoAttendanceIfEnabled(){
+  renderAutoControls();
+  const enabled = localStorage.getItem("smurfex_auto_enabled") === "1";
+  if(!enabled) return;
+  const worker = localStorage.getItem("smurfex_auto_worker");
+  const site = localStorage.getItem("smurfex_auto_site");
+  const workerEl = document.getElementById("worker");
+  const siteEl = document.getElementById("site");
+  if(workerEl && worker) workerEl.value = worker;
+  if(siteEl && site) siteEl.value = site;
+  const box = getAutoStatusBox();
+  box.style.display = "block";
+  box.innerHTML = "Automatika bola zapnutá. Zadaj PIN a klikni Spustiť automatiku.";
 }
 
 async function clearRecords(){
@@ -1480,4 +1699,6 @@ ensurePinInput();
 fillSelects();
 fillRequestTypeTexts();
 setLang(lang);
+renderAutoControls();
+resumeAutoAttendanceIfEnabled();
 renderAdminState();
