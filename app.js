@@ -287,6 +287,123 @@ const t = {
     arrival:"Arrival",
     departure:"Departure",
     duration:"Duration"
+
+  },
+  hi: {
+    title:"उपस्थिति",
+    subtitle:"ऑनलाइन आने और जाने का रिकॉर्ड",
+    attendanceNotice:"⚠️ कृपया कार्यस्थल पर शारीरिक रूप से पहुँचने के बाद ही उपस्थिति दर्ज करें। निर्माण स्थल के बाहर उपस्थिति दर्ज करना अनुमति नहीं है। ड्राइवरों और परिवहन कर्मचारियों को छूट है।",
+    requestTitle:"एडमिन के लिए अनुरोध",
+    requestHint:"यदि आपको सामग्री, औज़ार या कोई अन्य चीज़ चाहिए, तो यहाँ लिखें।",
+    requestTypeLabel:"अनुरोध का प्रकार",
+    requestMaterial:"सामग्री",
+    requestTool:"औज़ार",
+    requestTransport:"परिवहन",
+    requestOther:"अन्य",
+    requestTextLabel:"अनुरोध का विवरण",
+    requestTextPlaceholder:"जैसे: हमें प्लास्टरबोर्ड, स्क्रू, फोम, कटिंग डिस्क चाहिए...",
+    sendRequestBtn:"अनुरोध भेजें",
+    requestSent:"अनुरोध एडमिन को भेज दिया गया है।",
+    requestFill:"कर्मचारी, साइट चुनें, PIN डालें और अनुरोध लिखें।",
+    requestError:"अनुरोध भेजा नहीं जा सका।",
+    adminRequestsTitle:"कर्मचारियों के अनुरोध",
+    noRequests:"अभी कोई अनुरोध नहीं है।",
+    markDone:"पूरा हुआ",
+    requestStatusOpen:"खुला",
+    requestStatusDone:"पूरा हुआ",
+    workerLabel:"कर्मचारी",
+    workerPlaceholder:"कर्मचारी चुनें",
+    pinLabel:"कर्मचारी PIN",
+    pinPlaceholder:"PIN दर्ज करें",
+    siteLabel:"निर्माण स्थल",
+    sitePlaceholder:"साइट चुनें",
+    photoLabel:"कर्मचारी की फोटो",
+    photoHint:"सेव करने से पहले कर्मचारी की फोटो लें।",
+    photoRequired:"कर्मचारी की फोटो आवश्यक है।",
+    photoProcessing:"फोटो प्रोसेस हो रही है...",
+    photo:"फोटो",
+    startBtn:"मैं आ गया हूँ",
+    endBtn:"मैं जा रहा हूँ",
+    todayTitle:"सभी रिकॉर्ड",
+    dashboardTitle:"आज का लाइव अवलोकन",
+    sitesDashboardTitle:"साइट डैशबोर्ड",
+    peopleOnSite:"वर्तमान में साइट पर",
+    siteHoursToday:"आज साइट पर घंटे",
+    noSiteWorkers:"आज इस साइट पर अभी तक कोई चेक-इन नहीं हुआ है।",
+    notificationsTitle:"नवीनतम घटनाएँ",
+    presentNow:"अभी काम पर",
+    latestEvents:"नवीनतम रिकॉर्ड",
+    exportBtn:"CSV एक्सपोर्ट",
+    clearBtn:"रिकॉर्ड हटाएं",
+    noRecords:"अभी कोई रिकॉर्ड नहीं है।",
+    fillAlert:"कर्मचारी, साइट चुनें और PIN डालें।",
+    wrongWorkerPin:"गलत कर्मचारी PIN।",
+    saved:"ऑनलाइन सेव हुआ",
+    start:"आगमन",
+    end:"प्रस्थान",
+    site:"साइट",
+    noExport:"कोई रिकॉर्ड नहीं है।",
+    confirmClear:"क्या आप सच में सभी ऑनलाइन रिकॉर्ड हटाना चाहते हैं?",
+    adminTitle:"एडमिन",
+    adminLoginBtn:"एडमिन लॉगिन",
+    adminLogoutBtn:"एडमिन लॉगआउट",
+    wrongPin:"गलत PIN।",
+    online:"ऑनलाइन डेटाबेस जुड़ा हुआ है।",
+    saving:"सेव हो रहा है...",
+    saveError:"सेव करने में त्रुटि। इंटरनेट या Firestore नियम जांचें।",
+    gpsGetting:"GPS लोकेशन ली जा रही है...",
+    gpsError:"GPS लोकेशन आवश्यक है। ब्राउज़र में लोकेशन अनुमति दें और फिर कोशिश करें।",
+    geofenceError:"आप साइट की अनुमति सीमा से बाहर हैं। उपस्थिति केवल निर्माण स्थल पर ही दर्ज की जा सकती है।",
+    geofenceDistance:"साइट से दूरी",
+    geofenceOk:"लोकेशन साइट की अनुमति सीमा में है।",
+    weatherTitle:"साइट का मौसम",
+    weatherLoad:"मौसम लोड करें",
+    weatherLoading:"मौसम लोड हो रहा है...",
+    weatherError:"मौसम लोड नहीं हो सका।",
+    temperature:"तापमान",
+    wind:"हवा",
+    rain:"वर्षा",
+    weatherHint:"वर्तमान मौसम देखने के लिए साइट चुनें।",
+    map:"मैप खोलें",
+    location:"GPS लोकेशन",
+    inWork:"काम पर",
+    left:"चला गया",
+    noToday:"आज अभी कोई उपस्थिति रिकॉर्ड नहीं है।",
+    hoursToday:"आज",
+    lastTime:"अंतिम समय",
+    reportTitle:"मासिक रिपोर्ट",
+    reportWorker:"रिपोर्ट के लिए कर्मचारी",
+    reportMonth:"महीना",
+    showReportBtn:"रिपोर्ट दिखाएं",
+    pdfReportBtn:"PDF रिपोर्ट",
+    csvReportBtn:"CSV रिपोर्ट",
+    allWorkers:"सभी कर्मचारी",
+    totalHours:"कुल घंटे",
+    reportDays:"दिन",
+    reportNoData:"चुने गए महीने के लिए कोई रिकॉर्ड नहीं है।",
+    reportGenerated:"रिपोर्ट बनाई गई",
+    calendarTitle:"कर्मचारी कैलेंडर",
+    calendarWorker:"कर्मचारी",
+    calendarMonth:"महीना",
+    showCalendarBtn:"कैलेंडर दिखाएं",
+    calendarNoData:"चुने गए महीने के लिए कोई रिकॉर्ड नहीं है।",
+    calendarProblem:"प्रस्थान गायब है",
+    calendarOk:"ठीक है",
+    calendarDay:"दिन",
+    calendarStatus:"स्थिति",
+    filterTitle:"रिकॉर्ड फ़िल्टर",
+    filterWorker:"कर्मचारी",
+    filterSite:"साइट",
+    filterDate:"तारीख",
+    filterType:"प्रकार",
+    filterAllTypes:"सभी",
+    filterSearch:"खोजें",
+    filterSearchPlaceholder:"नाम, साइट, तारीख...",
+    resetFilterBtn:"फ़िल्टर रीसेट",
+    filteredCount:"दिखाए गए रिकॉर्ड",
+    arrival:"आगमन",
+    departure:"प्रस्थान",
+    duration:"अवधि"
   }
 };
 
@@ -393,6 +510,8 @@ function setLang(l){
   });
   document.getElementById("btn-sk").classList.toggle("active", lang === "sk");
   document.getElementById("btn-en").classList.toggle("active", lang === "en");
+  const hiBtn = document.getElementById("btn-hi");
+  if(hiBtn) hiBtn.classList.toggle("active", lang === "hi");
   fillSelects();
   renderAdminState();
   fillRequestTypeTexts();
@@ -633,7 +752,14 @@ function weatherCodeText(code){
     61:"Light rain", 63:"Rain", 65:"Heavy rain", 71:"Light snow", 73:"Snow", 75:"Heavy snow",
     80:"Showers", 81:"Heavy showers", 82:"Violent showers", 95:"Thunderstorm"
   };
-  return (lang === "en" ? mapEn : mapSk)[code] || (lang === "en" ? "Weather" : "Počasie");
+  const mapHi = {
+    0:"साफ", 1:"अधिकतर साफ", 2:"आंशिक बादल", 3:"बादल छाए हुए",
+    45:"कोहरा", 48:"ठंडा कोहरा", 51:"हल्की बूंदाबांदी", 53:"बूंदाबांदी", 55:"तेज़ बूंदाबांदी",
+    61:"हल्की बारिश", 63:"बारिश", 65:"तेज़ बारिश", 71:"हल्की बर्फ", 73:"बर्फ", 75:"तेज़ बर्फ",
+    80:"बारिश की बौछारें", 81:"तेज़ बौछारें", 82:"बहुत तेज़ बौछारें", 95:"तूफ़ान"
+  };
+  const maps = { sk: mapSk, en: mapEn, hi: mapHi };
+  return (maps[lang] || mapSk)[code] || (lang === "hi" ? "मौसम" : (lang === "en" ? "Weather" : "Počasie"));
 }
 
 async function renderWeatherForSelectedSite(){
