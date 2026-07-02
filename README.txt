@@ -1,1 +1,1 @@
-Smurfex update: geofencing 300 m pre STRABAG letisko/nemocnica + počasie cez Open-Meteo. Nahrať index.html a app.js na GitHub. Po nahratí Ctrl+F5 / inkognito.
+Smurfex update: mzdy, hodinové sadzby, obedy a výnimky pre šoférov. Nahraj na GitHub: index.html, app.js, sw.js. Potom Ctrl+F5.

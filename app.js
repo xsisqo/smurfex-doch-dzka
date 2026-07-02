@@ -29,13 +29,23 @@ const WORKER_PINS = {
 
 
 const DEFAULT_HOURLY_RATES = {
-  "Mohit Kumar": 0,
-  "Gurwinder Singh": 0,
-  "Pradip Majumder": 0,
-  "Jatinder Singh": 0,
-  "Vlado Hatala": 0,
-  "Fero Maslík": 0,
-  "Milan Sedliak": 0
+  "Mohit Kumar": 6,
+  "Gurwinder Singh": 6,
+  "Pradip Majumder": 6,
+  "Jatinder Singh": 5,
+  "Vlado Hatala": 8,
+  "Fero Maslík": 8,
+  "Milan Sedliak": 8
+};
+
+const DEFAULT_LUNCH_MINUTES = {
+  "Mohit Kumar": 30,
+  "Gurwinder Singh": 30,
+  "Pradip Majumder": 60,
+  "Jatinder Singh": 30,
+  "Vlado Hatala": 60,
+  "Fero Maslík": 60,
+  "Milan Sedliak": 60
 };
 
 function getHourlyRates(){
@@ -48,6 +58,18 @@ function getHourlyRates(){
 
 function saveHourlyRatesToStorage(rates){
   localStorage.setItem("smurfex_hourly_rates", JSON.stringify(rates));
+}
+
+function getLunchMinutes(){
+  try{
+    return { ...DEFAULT_LUNCH_MINUTES, ...JSON.parse(localStorage.getItem("smurfex_lunch_minutes") || "{}") };
+  }catch(e){
+    return { ...DEFAULT_LUNCH_MINUTES };
+  }
+}
+
+function saveLunchMinutesToStorage(lunch){
+  localStorage.setItem("smurfex_lunch_minutes", JSON.stringify(lunch));
 }
 
 const SITES = [
@@ -197,10 +219,14 @@ const t = {
     driver:"Šofér",
     driverExempt:"Šofér – výnimka z geofencingu",
     wageTitle:"Mzdy a hodinové sadzby",
-    wageHint:"Nastav hodinovú sadzbu pracovníka. Sadzby sa ukladajú v tomto admin zariadení.",
+    wageHint:"Hodinové sadzby a obedy sú prednastavené podľa Smurfex. Vieš ich upraviť a uložiť v tomto admin zariadení.",
     hourlyRate:"Hodinová sadzba",
-    saveWageRatesBtn:"Uložiť sadzby",
-    wageRatesSaved:"Hodinové sadzby boli uložené.",
+    lunchBreak:"Obed",
+    paidHours:"Platené hodiny",
+    grossHours:"Hrubé hodiny",
+    totalLunch:"Obedy spolu",
+    saveWageRatesBtn:"Uložiť sadzby a obedy",
+    wageRatesSaved:"Hodinové sadzby a obedy boli uložené.",
     monthlyWageTitle:"Mesačný výpočet mzdy",
     wageAmount:"Mzda",
     totalWage:"Spolu mzda",
@@ -324,10 +350,14 @@ const t = {
     driver:"Driver",
     driverExempt:"Driver – geofencing exception",
     wageTitle:"Wages and hourly rates",
-    wageHint:"Set an hourly rate for each worker. Rates are saved on this admin device.",
+    wageHint:"Hourly rates and lunch breaks are preset for Smurfex. You can edit and save them on this admin device.",
     hourlyRate:"Hourly rate",
-    saveWageRatesBtn:"Save rates",
-    wageRatesSaved:"Hourly rates have been saved.",
+    lunchBreak:"Lunch",
+    paidHours:"Paid hours",
+    grossHours:"Gross hours",
+    totalLunch:"Total lunch",
+    saveWageRatesBtn:"Save rates and lunch",
+    wageRatesSaved:"Hourly rates and lunch breaks have been saved.",
     monthlyWageTitle:"Monthly wage calculation",
     wageAmount:"Wage",
     totalWage:"Total wage",
@@ -452,10 +482,14 @@ const t = {
     driver:"ड्राइवर",
     driverExempt:"ड्राइवर – जियोफेंसिंग छूट",
     wageTitle:"वेतन और प्रति घंटा दर",
-    wageHint:"हर कर्मचारी की प्रति घंटा दर सेट करें। दरें इस एडमिन डिवाइस में सेव होती हैं।",
+    wageHint:"Smurfex के लिए प्रति घंटा दर और लंच ब्रेक पहले से सेट हैं। एडमिन इन्हें बदलकर सेव कर सकता है।",
     hourlyRate:"प्रति घंटा दर",
-    saveWageRatesBtn:"दरें सेव करें",
-    wageRatesSaved:"प्रति घंटा दरें सेव हो गई हैं।",
+    lunchBreak:"लंच",
+    paidHours:"पेड घंटे",
+    grossHours:"कुल घंटे",
+    totalLunch:"कुल लंच",
+    saveWageRatesBtn:"दर और लंच सेव करें",
+    wageRatesSaved:"प्रति घंटा दर और लंच ब्रेक सेव हो गए हैं।",
     monthlyWageTitle:"मासिक वेतन गणना",
     wageAmount:"वेतन",
     totalWage:"कुल वेतन",
@@ -1286,18 +1320,20 @@ function renderMonthlyReport(showEmpty = true){
   }
   const wageRows = buildWageSummary(report.rows);
   const totalWage = wageRows.reduce((sum, w) => sum + (w.amount || 0), 0);
+  const totalPaid = wageRows.reduce((sum, w) => sum + (w.paidMinutes || 0), 0);
+  const totalLunch = wageRows.reduce((sum, w) => sum + (w.lunchTotal || 0), 0);
   box.innerHTML = `
     <p><b>${t[lang].reportGenerated}</b>: ${report.month}</p>
-    <p>${t[lang].totalHours}: <b>${formatMinutes(report.total)}</b><br>${t[lang].reportDays}: <b>${report.days}</b><br>${t[lang].totalWage}: <b>${formatMoney(totalWage)}</b></p>
+    <p>${t[lang].grossHours}: <b>${formatMinutes(report.total)}</b><br>${t[lang].totalLunch}: <b>${formatMinutes(totalLunch)}</b><br>${t[lang].paidHours}: <b>${formatMinutes(totalPaid)}</b><br>${t[lang].reportDays}: <b>${report.days}</b><br>${t[lang].totalWage}: <b>${formatMoney(totalWage)}</b></p>
     <div class="record">
       <b>${t[lang].monthlyWageTitle}</b><br>
-      ${wageRows.map(w => `${w.worker}: ${formatMinutes(w.minutes)} × ${w.rate ? formatMoney(w.rate) : t[lang].rateNotSet} = <b>${formatMoney(w.amount)}</b>`).join("<br>")}
+      ${wageRows.map(w => `${w.worker}: ${t[lang].grossHours} ${formatMinutes(w.minutes)} - ${t[lang].lunchBreak} ${formatMinutes(w.lunchTotal)} = ${t[lang].paidHours} ${formatMinutes(w.paidMinutes)} × ${w.rate ? formatMoney(w.rate) : t[lang].rateNotSet} = <b>${formatMoney(w.amount)}</b>`).join("<br>")}
     </div>
     <div class="record">
       ${report.rows.map(r => `
         <b>${r.worker}</b> — ${r.site}<br>
         ${r.date}: ${t[lang].arrival} ${r.startTime} / ${t[lang].departure} ${r.endTime}<br>
-        ${t[lang].duration}: ${formatMinutes(r.minutes)}
+        ${t[lang].grossHours}: ${formatMinutes(r.minutes)}
       `).join("<hr>")}
     </div>`;
 }
@@ -1315,8 +1351,8 @@ function printMonthlyReport(){
     <h1>Smurfex s.r.o. - ${t[lang].reportTitle}</h1>
     <div>${t[lang].reportMonth}: <b>${report.month}</b></div>
     <div>${t[lang].reportWorker}: <b>${report.worker || t[lang].allWorkers}</b></div>
-    <div class="sum">${t[lang].totalHours}: <b>${formatMinutes(report.total)}</b> | ${t[lang].reportDays}: <b>${report.days}</b> | ${t[lang].totalWage}: <b>${formatMoney(totalWage)}</b></div>
-    <h2>${t[lang].monthlyWageTitle}</h2><table><thead><tr><th>Pracovník</th><th>${t[lang].duration}</th><th>${t[lang].hourlyRate}</th><th>${t[lang].wageAmount}</th></tr></thead><tbody>${wageRows.map(w => `<tr><td>${w.worker}</td><td>${formatMinutes(w.minutes)}</td><td>${w.rate ? formatMoney(w.rate) : "-"}</td><td>${formatMoney(w.amount)}</td></tr>`).join("")}</tbody></table>
+    <div class="sum">${t[lang].grossHours}: <b>${formatMinutes(report.total)}</b> | ${t[lang].reportDays}: <b>${report.days}</b> | ${t[lang].totalWage}: <b>${formatMoney(totalWage)}</b></div>
+    <h2>${t[lang].monthlyWageTitle}</h2><table><thead><tr><th>Pracovník</th><th>${t[lang].grossHours}</th><th>${t[lang].lunchBreak}</th><th>${t[lang].paidHours}</th><th>${t[lang].hourlyRate}</th><th>${t[lang].wageAmount}</th></tr></thead><tbody>${wageRows.map(w => `<tr><td>${w.worker}</td><td>${formatMinutes(w.minutes)}</td><td>${formatMinutes(w.lunchTotal)}</td><td>${formatMinutes(w.paidMinutes)}</td><td>${w.rate ? formatMoney(w.rate) : "-"}</td><td>${formatMoney(w.amount)}</td></tr>`).join("")}</tbody></table>
     <h2>${t[lang].reportTitle}</h2><table><thead><tr><th>Dátum</th><th>Pracovník</th><th>Stavba</th><th>${t[lang].arrival}</th><th>${t[lang].departure}</th><th>${t[lang].duration}</th></tr></thead><tbody>
     ${report.rows.map(r => `<tr><td>${r.date}</td><td>${r.worker}</td><td>${r.site}</td><td>${r.startTime}</td><td>${r.endTime}</td><td>${formatMinutes(r.minutes)}</td></tr>`).join("")}
     </tbody></table>
@@ -1334,7 +1370,7 @@ function exportMonthlyCSV(){
   const header = "Date;Worker;Site;Arrival;Departure;Minutes;Duration\n";
   const rows = report.rows.map(r => `${r.date};${r.worker};${r.site};${r.startTime};${r.endTime};${r.minutes};${formatMinutes(r.minutes)}`).join("\n");
   const wageRows = buildWageSummary(report.rows);
-  const wageSection = "\n\nWorker;Minutes;Duration;Hourly rate;Wage\n" + wageRows.map(w => `${w.worker};${w.minutes};${formatMinutes(w.minutes)};${w.rate || 0};${w.amount.toFixed(2)}`).join("\n");
+  const wageSection = "\n\nWorker;Gross minutes;Gross duration;Lunch minutes;Paid minutes;Paid duration;Hourly rate;Wage\n" + wageRows.map(w => `${w.worker};${w.minutes};${formatMinutes(w.minutes)};${w.lunchTotal};${w.paidMinutes};${formatMinutes(w.paidMinutes)};${w.rate || 0};${w.amount.toFixed(2)}`).join("\n");
   const blob = new Blob([header + rows + wageSection], {type:"text/csv;charset=utf-8"});
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
@@ -1365,6 +1401,7 @@ function renderWageSettings(){
   const box = document.getElementById("wageSettings");
   if(!box || !isAdmin) return;
   const rates = getHourlyRates();
+  const lunches = getLunchMinutes();
   box.innerHTML = `
     <p class="sub">${t[lang].wageHint}</p>
     ${WORKERS.map(w => `
@@ -1373,6 +1410,8 @@ function renderWageSettings(){
         ${DRIVER_EXEMPT_WORKERS.includes(w) ? `<span>${t[lang].driverExempt}</span><br>` : ""}
         <label>${t[lang].hourlyRate} (€ / h)</label>
         <input class="wageRateInput" data-worker="${w}" type="number" min="0" step="0.01" value="${rates[w] || ""}" placeholder="0.00">
+        <label>${t[lang].lunchBreak} (min / deň)</label>
+        <input class="lunchInput" data-worker="${w}" type="number" min="0" step="5" value="${lunches[w] || 0}" placeholder="30">
       </div>
     `).join("")}
     <button class="small" onclick="saveWageRates()">${t[lang].saveWageRatesBtn}</button>
@@ -1383,12 +1422,19 @@ function renderWageSettings(){
 function saveWageRates(){
   if(!isAdmin) return;
   const rates = {};
+  const lunches = {};
   document.querySelectorAll(".wageRateInput").forEach(input => {
     const worker = input.dataset.worker;
     const value = parseFloat(String(input.value).replace(",", "."));
     rates[worker] = isNaN(value) ? 0 : value;
   });
+  document.querySelectorAll(".lunchInput").forEach(input => {
+    const worker = input.dataset.worker;
+    const value = parseInt(input.value, 10);
+    lunches[worker] = isNaN(value) ? 0 : value;
+  });
   saveHourlyRatesToStorage(rates);
+  saveLunchMinutesToStorage(lunches);
   const status = document.getElementById("wageStatus");
   if(status) status.innerText = t[lang].wageRatesSaved;
   renderMonthlyReport(false);
@@ -1396,13 +1442,18 @@ function saveWageRates(){
 
 function buildWageSummary(rows){
   const rates = getHourlyRates();
+  const lunches = getLunchMinutes();
   const summary = {};
   rows.forEach(r => {
-    if(!summary[r.worker]) summary[r.worker] = { worker:r.worker, minutes:0, rate:rates[r.worker] || 0, amount:0 };
+    const lunch = Math.min(r.minutes || 0, lunches[r.worker] || 0);
+    const paid = Math.max(0, (r.minutes || 0) - lunch);
+    if(!summary[r.worker]) summary[r.worker] = { worker:r.worker, minutes:0, lunchTotal:0, paidMinutes:0, rate:rates[r.worker] || 0, amount:0 };
     summary[r.worker].minutes += r.minutes || 0;
+    summary[r.worker].lunchTotal += lunch;
+    summary[r.worker].paidMinutes += paid;
   });
   Object.values(summary).forEach(s => {
-    s.amount = (s.minutes / 60) * (s.rate || 0);
+    s.amount = (s.paidMinutes / 60) * (s.rate || 0);
   });
   return Object.values(summary);
 }
