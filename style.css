@@ -2,7 +2,7 @@
 body{margin:0;font-family:Arial,sans-serif;background:#f2f6f8;color:#111}
 .app{max-width:520px;margin:0 auto;padding:18px}
 .card{background:white;border-radius:22px;padding:22px;margin-bottom:18px;box-shadow:0 8px 25px rgba(0,0,0,.10)}
-.logo{display:block;width:220px;max-width:100%;margin:0 auto 12px}
+.logo{display:block;width:340px;max-width:100%;margin:0 auto 14px}
 .lang{display:flex;justify-content:center;gap:8px;margin:8px 0 6px}
 .langBtn{padding:9px 18px;border-radius:12px;border:1px solid #2c9ed4;background:white;color:#2c9ed4;font-size:16px;font-weight:bold}
 .langBtn.active{background:#2c9ed4;color:white}

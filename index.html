@@ -5,181 +5,37 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Smurfex Dochádzka / Attendance</title>
   <meta name="theme-color" content="#56b9e8">
-  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-  <meta http-equiv="Pragma" content="no-cache">
-  <meta http-equiv="Expires" content="0">
   <link rel="manifest" href="manifest.json">
   <link rel="icon" href="icon-192.png">
-  <link rel="stylesheet" href="style.css?v=cache-clean-v2">
-
-  <style>
-    .notice {
-      background: #fff3cd;
-      border: 1px solid #ffe69c;
-      color: #856404;
-      padding: 12px;
-      border-radius: 10px;
-      margin: 14px 0 16px;
-      font-size: 14px;
-      line-height: 1.45;
-      text-align: center;
-      font-weight: 700;
-    }
-    textarea {
-      width: 100%;
-      min-height: 90px;
-      resize: vertical;
-      box-sizing: border-box;
-    }
-  </style>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <main class="app">
     <section class="card">
       <img src="logo.png" class="logo" alt="Smurfex s.r.o.">
-
       <div class="lang">
         <button class="langBtn active" onclick="setLang('sk')" id="btn-sk">SK</button>
         <button class="langBtn" onclick="setLang('en')" id="btn-en">EN</button>
-        <button class="langBtn" onclick="setLang('hi')" id="btn-hi">हिन्दी</button>
       </div>
-
       <h1 data-i18n="title">Dochádzka</h1>
-      <p class="sub" data-i18n="subtitle">Online evidencia príchodu a odchodu</p>
-
-      <div class="notice" data-i18n="attendanceNotice">⚠️ Dochádzku zaznamenávajte až po fyzickom príchode na pracovisko. Prihlásenie mimo stavby nie je povolené. Výnimku majú šoféri a pracovníci vykonávajúci dopravu.</div>
-
-      <label data-i18n="workerLabel">Pracovník</label>
-      <select id="worker"></select>
-
+      <p class="sub" data-i18n="subtitle">Jednoduchá evidencia príchodu a odchodu</p>
+      <label data-i18n="workerLabel">Meno pracovníka</label>
+      <input id="worker" data-i18n-placeholder="workerPlaceholder" placeholder="napr. Ján Novák">
       <label data-i18n="siteLabel">Stavba</label>
-      <select id="site"></select>
-
-      <label data-i18n="photoLabel">Fotka pracovníka</label>
-      <input id="selfie" type="file" accept="image/*" capture="user">
-      <p class="sub" data-i18n="photoHint">Pred uložením sprav fotku pracovníka.</p>
-
+      <input id="site" data-i18n-placeholder="sitePlaceholder" placeholder="napr. STRABAG / Nitra">
       <div class="buttons">
         <button class="start" onclick="saveRecord('start')" data-i18n="startBtn">PRIŠIEL SOM</button>
         <button class="end" onclick="saveRecord('end')" data-i18n="endBtn">ODCHÁDZAM</button>
       </div>
-
       <p id="status"></p>
-      <p id="syncStatus" class="sub"></p>
     </section>
-
     <section class="card">
-      <h2 data-i18n="weatherTitle">Počasie na stavbe</h2>
-      <div id="weatherBox"><p data-i18n="weatherHint">Vyber stavbu a zobrazí sa aktuálne počasie.</p></div>
-      <button class="small" onclick="renderWeatherForSelectedSite()" data-i18n="weatherLoad">Načítať počasie</button>
+      <h2 data-i18n="todayTitle">Dnešné záznamy</h2>
+      <div id="records"></div>
+      <button class="small" onclick="exportCSV()" data-i18n="exportBtn">Export CSV</button>
+      <button class="small danger" onclick="clearRecords()" data-i18n="clearBtn">Vymazať záznamy</button>
     </section>
-
-
-    <section class="card">
-      <h2 data-i18n="requestTitle">Požiadavka pre admina</h2>
-      <p class="sub" data-i18n="requestHint">Ak potrebuješ materiál, náradie alebo máš inú požiadavku, napíš ju sem.</p>
-
-      <label data-i18n="requestTypeLabel">Typ požiadavky</label>
-      <select id="requestType">
-        <option value="material" data-i18n="requestMaterial">Materiál</option>
-        <option value="tool" data-i18n="requestTool">Náradie</option>
-        <option value="transport" data-i18n="requestTransport">Doprava</option>
-        <option value="other" data-i18n="requestOther">Iné</option>
-      </select>
-
-      <label data-i18n="requestTextLabel">Text požiadavky</label>
-      <textarea id="requestText" data-i18n-placeholder="requestTextPlaceholder" placeholder="Napr. potrebujeme sadrokartón, skrutky, penu, kotúče..."></textarea>
-
-      <button class="small" onclick="sendWorkerRequest()" data-i18n="sendRequestBtn">Odoslať požiadavku</button>
-      <p id="requestStatus" class="sub"></p>
-    </section>
-
-    <section class="card">
-      <h2 data-i18n="adminTitle">Administrátor</h2>
-      <button class="small" onclick="adminLogin()" id="adminLoginBtn" data-i18n="adminLoginBtn">Admin prihlásenie</button>
-      <button class="small danger" onclick="adminLogout()" id="adminLogoutBtn" style="display:none" data-i18n="adminLogoutBtn">Odhlásiť admina</button>
-
-      <div id="adminPanel" style="display:none">
-        <h2 data-i18n="adminRequestsTitle">Požiadavky pracovníkov</h2>
-        <div id="adminRequests"></div>
-
-        <h2 data-i18n="notificationsTitle">Posledné udalosti</h2>
-        <div id="notifications"></div>
-
-        <h2 data-i18n="dashboardTitle">Živý prehľad dnes</h2>
-        <div id="dashboard"></div>
-
-        <h2 data-i18n="sitesDashboardTitle">Dashboard stavieb</h2>
-        <div id="siteDashboard"></div>
-        <h2 data-i18n="reportTitle">Mesačný výkaz</h2>
-        <div class="record">
-          <label data-i18n="reportWorker">Pracovník pre výkaz</label>
-          <select id="reportWorker"></select>
-
-          <label data-i18n="reportMonth">Mesiac</label>
-          <input id="reportMonth" type="month">
-
-          <div class="buttons">
-            <button class="small" onclick="renderMonthlyReport()" data-i18n="showReportBtn">Zobraziť výkaz</button>
-            <button class="small" onclick="printMonthlyReport()" data-i18n="pdfReportBtn">PDF výkaz</button>
-            <button class="small" onclick="exportMonthlyCSV()" data-i18n="csvReportBtn">CSV výkaz</button>
-          </div>
-          <div id="monthlyReport"></div>
-        </div>
-
-
-        <h2 data-i18n="wageTitle">Mzdy a hodinové sadzby</h2>
-        <div id="wageSettings"></div>
-
-        <h2 data-i18n="calendarTitle">Kalendár pracovníka</h2>
-        <div class="record">
-          <label data-i18n="calendarWorker">Pracovník</label>
-          <select id="calendarWorker" onchange="renderWorkerCalendar()"></select>
-
-          <label data-i18n="calendarMonth">Mesiac</label>
-          <input id="calendarMonth" type="month" onchange="renderWorkerCalendar()">
-
-          <button class="small" onclick="renderWorkerCalendar()" data-i18n="showCalendarBtn">Zobraziť kalendár</button>
-          <div id="workerCalendar"></div>
-        </div>
-
-        <h2 data-i18n="filterTitle">Filter záznamov</h2>
-        <div class="record">
-          <label data-i18n="filterWorker">Pracovník</label>
-          <select id="filterWorker" onchange="renderRecords()"></select>
-
-          <label data-i18n="filterSite">Stavba</label>
-          <select id="filterSite" onchange="renderRecords()"></select>
-
-          <label data-i18n="filterDate">Dátum</label>
-          <input id="filterDate" type="date" onchange="renderRecords()">
-
-          <label data-i18n="filterType">Typ</label>
-          <select id="filterType" onchange="renderRecords()">
-            <option value="" data-i18n="filterAllTypes">Všetko</option>
-            <option value="start" data-i18n="start">PRÍCHOD</option>
-            <option value="end" data-i18n="end">ODCHOD</option>
-          </select>
-
-          <label data-i18n="filterSearch">Hľadať</label>
-          <input id="filterSearch" type="search" oninput="renderRecords()" data-i18n-placeholder="filterSearchPlaceholder" placeholder="Meno, stavba, dátum...">
-
-          <button class="small" onclick="resetFilters()" data-i18n="resetFilterBtn">Reset filtra</button>
-        </div>
-
-        <h2 data-i18n="todayTitle">Všetky záznamy</h2>
-        <p id="filterCount" class="sub"></p>
-        <div id="records"></div>
-        <button class="small" onclick="exportCSV()" data-i18n="exportBtn">Export CSV</button>
-        <button class="small danger" onclick="clearRecords()" data-i18n="clearBtn">Vymazať záznamy</button>
-      </div>
-    </section>
-
-    <p class="sub" style="font-size:12px;margin-top:8px">Smurfex Dochádzka v1.0.9</p>
   </main>
-
-  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
-  <script src="app.js?v=cache-clean-v2"></script>
+  <script src="app.js"></script>
 </body>
 </html>
