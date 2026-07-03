@@ -20,19 +20,12 @@ button{border:0;border-radius:18px;padding:20px;font-size:22px;font-weight:bold;
 .record b{color:#111}
 #status{text-align:center;font-weight:bold;color:#19a75b}
 
-select, textarea {
-  width:100%;
-  padding:16px;
-  font-size:18px;
-  border:1px solid #ddd;
-  border-radius:14px;
-  background:white;
-}
-textarea{font-family:Arial,sans-serif;line-height:1.4}
-.checkLine{display:flex;align-items:center;gap:10px;background:#f7fbfd;border:1px solid #e3eef4;border-radius:12px;padding:10px;margin:8px 0}
-.checkLine input{width:auto}
-.barRow{display:flex;justify-content:space-between;gap:10px;margin-top:12px;font-size:14px}
-.bar{height:12px;background:#e9f2f7;border-radius:999px;overflow:hidden;margin-top:5px}
-.bar i{display:block;height:100%;background:#2c9ed4;border-radius:999px}
-.version{text-align:center;color:#777;font-size:12px;margin:8px 0 20px}
-@media print{.lang,.buttons,button,#adminLoginBtn,#adminLogoutBtn{display:none!important}.card{box-shadow:none;border:1px solid #ddd}}
+select, textarea {width:100%;padding:16px;font-size:18px;border:1px solid #ddd;border-radius:14px;background:white}
+textarea{min-height:100px;resize:vertical}
+.notice{background:#fff3cd;border:1px solid #ffe69c;color:#856404;padding:12px;border-radius:10px;margin:14px 0 16px;font-size:14px;line-height:1.45;text-align:center;font-weight:700}
+.grid2{display:grid;grid-template-columns:1fr;gap:12px}
+.kpi{background:#f6fbff;border:1px solid #d9eef9;border-radius:16px;padding:14px;margin:8px 0}
+.chartBar{height:18px;background:#2c9ed4;border-radius:9px;margin:6px 0 12px}
+.badge{display:inline-block;padding:4px 9px;border-radius:999px;background:#eef7fb;color:#2c9ed4;font-weight:bold;font-size:12px}
+.priority-high{background:#ffe8e8;color:#b00020}.priority-normal{background:#eef7fb;color:#2c9ed4}.priority-low{background:#f2f2f2;color:#555}
+@media(min-width:700px){.app{max-width:980px}.grid2{grid-template-columns:1fr 1fr}}

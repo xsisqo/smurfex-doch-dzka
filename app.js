@@ -8,6 +8,9 @@ let currentDiaries = [];
 let unsubscribeRecords = null;
 let unsubscribeRequests = null;
 let unsubscribeDiaries = null;
+let recordsListenerReady = false;
+let requestsListenerReady = false;
+let diariesListenerReady = false;
 
 const WORKERS = [
   "Mohit Kumar",
@@ -74,27 +77,6 @@ function saveLunchMinutesToStorage(lunch){
   localStorage.setItem("smurfex_lunch_minutes", JSON.stringify(lunch));
 }
 
-function getMasterWorkers(){
-  try{
-    const saved = JSON.parse(localStorage.getItem("smurfex_master_workers") || "[]");
-    return Array.isArray(saved) ? saved : [...DEFAULT_MASTER_EXEMPT_WORKERS];
-  }catch(e){
-    return [...DEFAULT_MASTER_EXEMPT_WORKERS];
-  }
-}
-
-function saveMasterWorkers(list){
-  localStorage.setItem("smurfex_master_workers", JSON.stringify(list || []));
-}
-
-function isMasterWorker(worker){
-  return getMasterWorkers().includes(worker);
-}
-
-function escapeHtml(value){
-  return String(value || "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
-}
-
 const SITES = [
   "STRABAG letisko",
   "STRABAG nemocnica"
@@ -109,7 +91,7 @@ const GEOFENCE_RADIUS_METERS = 3000;
 const AUTO_CHECKIN_DELAY_MS = 5 * 60 * 1000;
 const AUTO_CHECKOUT_DELAY_MS = 15 * 60 * 1000;
 const DRIVER_EXEMPT_WORKERS = ["Pradip Majumder", "Vlado Hatala"];
-const DEFAULT_MASTER_EXEMPT_WORKERS = [];
+const MASTER_EXEMPT_WORKERS = [];
 const DRIVER_DAILY_BONUS_MINUTES = 60;
 let autoWatchId = null;
 let autoInsideSince = null;
@@ -130,7 +112,7 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 const recordsCol = db.collection("records");
 const requestsCol = db.collection("requests");
-const diariesCol = db.collection("siteDiaries");
+const diariesCol = db.collection("diaries");
 
 const t = {
   sk: {
@@ -262,36 +244,7 @@ const t = {
     monthlyWageTitle:"Mesačný výpočet mzdy",
     wageAmount:"Mzda",
     totalWage:"Spolu mzda",
-    rateNotSet:"Sadzba nie je nastavená",
-    requestPriorityLabel:"Priorita",
-    priorityNormal:"Normálna",
-    priorityUrgent:"Urgentná",
-    priorityLow:"Nízka",
-    diaryTitle:"Denný stavebný denník",
-    diaryDate:"Dátum denníka",
-    diaryWorkTitle:"Názov práce",
-    diaryWorkPlaceholder:"Napr. Montáž SDK priečok",
-    diaryDescription:"Popis prác",
-    diaryDescriptionPlaceholder:"Popíš, čo sa dnes robilo na stavbe...",
-    diaryPeople:"Počet pracovníkov",
-    diaryNote:"Poznámka",
-    diaryPhotos:"Fotodokumentácia",
-    diarySaveBtn:"Uložiť stavebný denník",
-    diarySaved:"Stavebný denník bol uložený.",
-    diaryFill:"Vyber stavbu, dátum a vyplň popis prác.",
-    diaryAdminTitle:"Stavebné denníky a fotodokumentácia",
-    noDiaries:"Zatiaľ nie sú žiadne stavebné denníky.",
-    printDiaryBtn:"PDF / tlač denník",
-    graphsTitle:"Grafy a štatistiky",
-    graphHoursWorkers:"Hodiny podľa pracovníka",
-    graphHoursSites:"Hodiny podľa stavby",
-    masterTitle:"Majstri a výnimky",
-    masterHint:"Vybraní majstri majú neobmedzený geofencing ako šoféri.",
-    saveMastersBtn:"Uložiť majstrov",
-    mastersSaved:"Majstri boli uložení.",
-    pushTitle:"Push notifikácie",
-    pushInfo:"Mobilné push notifikácie vyžadujú Firebase Cloud Messaging alebo natívnu Android aplikáciu. V tejto PWA sú zatiaľ dostupné posledné udalosti v admin paneli.",
-    appVersion:"Verzia aplikácie"
+    rateNotSet:"Sadzba nie je nastavená"
   },
   en: {
     title:"Attendance",
@@ -422,36 +375,7 @@ const t = {
     monthlyWageTitle:"Monthly wage calculation",
     wageAmount:"Wage",
     totalWage:"Total wage",
-    rateNotSet:"Rate is not set",
-    requestPriorityLabel:"Priority",
-    priorityNormal:"Normal",
-    priorityUrgent:"Urgent",
-    priorityLow:"Low",
-    diaryTitle:"Daily construction diary",
-    diaryDate:"Diary date",
-    diaryWorkTitle:"Work title",
-    diaryWorkPlaceholder:"E.g. drywall partition installation",
-    diaryDescription:"Work description",
-    diaryDescriptionPlaceholder:"Describe what was done on site today...",
-    diaryPeople:"Number of workers",
-    diaryNote:"Note",
-    diaryPhotos:"Photo documentation",
-    diarySaveBtn:"Save site diary",
-    diarySaved:"Site diary has been saved.",
-    diaryFill:"Select site, date and fill in work description.",
-    diaryAdminTitle:"Site diaries and photo documentation",
-    noDiaries:"No site diaries yet.",
-    printDiaryBtn:"PDF / print diary",
-    graphsTitle:"Charts and statistics",
-    graphHoursWorkers:"Hours by worker",
-    graphHoursSites:"Hours by site",
-    masterTitle:"Foremen and exceptions",
-    masterHint:"Selected foremen have unlimited geofencing like drivers.",
-    saveMastersBtn:"Save foremen",
-    mastersSaved:"Foremen saved.",
-    pushTitle:"Push notifications",
-    pushInfo:"Mobile push notifications require Firebase Cloud Messaging or a native Android app. This PWA currently shows latest events in the admin panel.",
-    appVersion:"App version"
+    rateNotSet:"Rate is not set"
 
   },
   hi: {
@@ -583,36 +507,7 @@ const t = {
     monthlyWageTitle:"मासिक वेतन गणना",
     wageAmount:"वेतन",
     totalWage:"कुल वेतन",
-    rateNotSet:"दर सेट नहीं है",
-    requestPriorityLabel:"प्राथमिकता",
-    priorityNormal:"सामान्य",
-    priorityUrgent:"तत्काल",
-    priorityLow:"कम",
-    diaryTitle:"दैनिक निर्माण डायरी",
-    diaryDate:"डायरी तारीख",
-    diaryWorkTitle:"काम का नाम",
-    diaryWorkPlaceholder:"जैसे: ड्राईवॉल पार्टिशन इंस्टॉलेशन",
-    diaryDescription:"काम का विवरण",
-    diaryDescriptionPlaceholder:"आज साइट पर क्या काम हुआ लिखें...",
-    diaryPeople:"कर्मचारियों की संख्या",
-    diaryNote:"नोट",
-    diaryPhotos:"फोटो दस्तावेज़",
-    diarySaveBtn:"साइट डायरी सेव करें",
-    diarySaved:"साइट डायरी सेव हो गई।",
-    diaryFill:"साइट, तारीख चुनें और काम का विवरण भरें।",
-    diaryAdminTitle:"साइट डायरी और फोटो दस्तावेज़",
-    noDiaries:"अभी कोई साइट डायरी नहीं है।",
-    printDiaryBtn:"PDF / प्रिंट डायरी",
-    graphsTitle:"ग्राफ और आंकड़े",
-    graphHoursWorkers:"कर्मचारी के अनुसार घंटे",
-    graphHoursSites:"साइट के अनुसार घंटे",
-    masterTitle:"फोरमैन और छूट",
-    masterHint:"चुने गए फोरमैन को ड्राइवरों की तरह जियोफेंसिंग छूट है।",
-    saveMastersBtn:"फोरमैन सेव करें",
-    mastersSaved:"फोरमैन सेव हो गए।",
-    pushTitle:"Push notifications",
-    pushInfo:"मोबाइल push notifications के लिए Firebase Cloud Messaging या native Android app चाहिए। अभी PWA में admin panel में latest events हैं।",
-    appVersion:"ऐप संस्करण"
+    rateNotSet:"दर सेट नहीं है"
   }
 };
 
@@ -625,7 +520,7 @@ function fillSelects(){
   const selectedSite = siteSelect.value;
 
   workerSelect.innerHTML = `<option value="">${t[lang].workerPlaceholder}</option>` +
-    WORKERS.map(name => `<option value="${name}">${name}${DRIVER_EXEMPT_WORKERS.includes(name) ? " 🚛" : ""}${isMasterWorker(name) ? " 👨‍💼" : ""}</option>`).join("");
+    WORKERS.map(name => `<option value="${name}">${name}${DRIVER_EXEMPT_WORKERS.includes(name) ? " 🚛" : ""}</option>`).join("");
 
   siteSelect.innerHTML = `<option value="">${t[lang].sitePlaceholder}</option>` +
     SITES.map(site => `<option value="${site}">${site}</option>`).join("");
@@ -733,9 +628,6 @@ function setLang(l){
   renderMonthlyReport(false);
   renderWorkerCalendar(false);
   renderWageSettings();
-  renderMasterSettings();
-  renderSiteDiaries();
-  renderGraphs();
 }
 
 function renderAdminState(){
@@ -747,7 +639,7 @@ function renderAdminState(){
   adminPanel.style.display = isAdmin ? "block" : "none";
   adminLoginBtn.style.display = isAdmin ? "none" : "inline-block";
   adminLogoutBtn.style.display = isAdmin ? "inline-block" : "none";
-  if(isAdmin){ startAdminListener(); startRequestListener(); startDiaryListener(); renderWageSettings(); renderMasterSettings(); renderGraphs(); }
+  if(isAdmin){ startAdminListener(); startRequestListener(); startDiaryListener(); renderWageSettings(); setupDiaryForm(); renderCharts(); }
 }
 
 function adminLogin(){
@@ -779,6 +671,9 @@ function adminLogout(){
   currentRecords = [];
   currentRequests = [];
   currentDiaries = [];
+  recordsListenerReady = false;
+  requestsListenerReady = false;
+  diariesListenerReady = false;
   renderAdminState();
   fillRequestTypeTexts();
   renderAdminRequests();
@@ -786,8 +681,6 @@ function adminLogout(){
   renderDashboard();
   renderSiteDashboard();
   renderRecords();
-  renderSiteDiaries();
-  renderGraphs();
 }
 
 
@@ -809,7 +702,6 @@ async function sendWorkerRequest(){
   const site = document.getElementById("site") ? document.getElementById("site").value.trim() : "";
   const pin = document.getElementById("workerPin") ? document.getElementById("workerPin").value.trim() : "";
   const type = document.getElementById("requestType") ? document.getElementById("requestType").value : "other";
-  const priority = document.getElementById("requestPriority") ? document.getElementById("requestPriority").value : "normal";
   const textEl = document.getElementById("requestText");
   const text = textEl ? textEl.value.trim() : "";
   const status = document.getElementById("requestStatus");
@@ -822,7 +714,6 @@ async function sendWorkerRequest(){
     pracovnik: worker,
     stavba: site,
     typ: type,
-    priority: priority,
     text: text,
     status: "open",
     datum: now.toLocaleDateString("sk-SK"),
@@ -846,7 +737,13 @@ async function sendWorkerRequest(){
 function startRequestListener(){
   if(unsubscribeRequests) return;
   unsubscribeRequests = requestsCol.orderBy("createdAtLocal", "desc").onSnapshot(snapshot => {
+    const previousFirstId = currentRequests[0] ? currentRequests[0].id : null;
     currentRequests = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    const newest = currentRequests[0];
+    if(requestsListenerReady && newest && newest.id !== previousFirstId){
+      sendLocalNotification("Nová požiadavka", `${newest.pracovnik || "Pracovník"} — ${requestTypeText(newest.typ)} — ${newest.stavba || ""}`);
+    }
+    requestsListenerReady = true;
     renderAdminRequests();
   }, err => {
     console.error(err);
@@ -860,12 +757,6 @@ function requestTypeText(type){
   return t[lang].requestOther;
 }
 
-function priorityText(priority){
-  if(priority === "urgent") return "🔴 " + t[lang].priorityUrgent;
-  if(priority === "low") return "⚪ " + t[lang].priorityLow;
-  return "🟡 " + t[lang].priorityNormal;
-}
-
 function renderAdminRequests(){
   const box = document.getElementById("adminRequests");
   if(!box) return;
@@ -876,8 +767,7 @@ function renderAdminRequests(){
       <b>${r.status === "done" ? "✅" : "🟡"} ${requestTypeText(r.typ)}</b> — ${r.pracovnik || ""}<br>
       ${r.datum || ""} ${r.cas || ""}<br>
       ${t[lang].site}: ${r.stavba || ""}<br>
-      ${t[lang].requestPriorityLabel}: <b>${priorityText(r.priority)}</b><br>
-      <p>${escapeHtml(r.text)}</p>
+      <p>${(r.text || "").replace(/</g,"&lt;").replace(/>/g,"&gt;")}</p>
       <b>${r.status === "done" ? t[lang].requestStatusDone : t[lang].requestStatusOpen}</b>
       ${r.status !== "done" ? `<br><button class="small" onclick="markRequestDone('${r.id}')">${t[lang].markDone}</button>` : ""}
     </div>`).join("");
@@ -961,7 +851,7 @@ function distanceMeters(lat1, lng1, lat2, lng2){
 
 function checkGeofence(worker, site, gps){
   const sitePosition = SITE_COORDS[site];
-  if(!sitePosition || DRIVER_EXEMPT_WORKERS.includes(worker) || isMasterWorker(worker)){
+  if(!sitePosition || DRIVER_EXEMPT_WORKERS.includes(worker) || MASTER_EXEMPT_WORKERS.includes(worker)){
     return { ok: true, distance: null };
   }
   const distance = distanceMeters(gps.lat, gps.lng, sitePosition.lat, sitePosition.lng);
@@ -1078,7 +968,7 @@ async function saveRecord(type){
     geofenceRadius: GEOFENCE_RADIUS_METERS,
     isDriver: DRIVER_EXEMPT_WORKERS.includes(worker),
     driverExempt: DRIVER_EXEMPT_WORKERS.includes(worker),
-    isMaster: isMasterWorker(worker),
+    isMaster: MASTER_EXEMPT_WORKERS.includes(worker),
     photoData: photoData,
     createdAt: firebase.firestore.FieldValue.serverTimestamp()
   };
@@ -1102,7 +992,13 @@ async function saveRecord(type){
 function startAdminListener(){
   if(unsubscribeRecords) return;
   unsubscribeRecords = recordsCol.orderBy("createdAtLocal", "desc").onSnapshot(snapshot => {
+    const previousFirstId = currentRecords[0] ? currentRecords[0].id : null;
     currentRecords = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    const newest = currentRecords[0];
+    if(recordsListenerReady && newest && newest.id !== previousFirstId){
+      sendLocalNotification("Smurfex dochádzka", `${newest.pracovnik || "Pracovník"} — ${t[lang][newest.typ] || newest.typ} — ${newest.stavba || ""} — ${newest.cas || ""}`);
+    }
+    recordsListenerReady = true;
     document.getElementById("syncStatus").innerText = t[lang].online;
     renderNotifications();
     renderDashboard();
@@ -1110,7 +1006,7 @@ function startAdminListener(){
     renderRecords();
     renderMonthlyReport(false);
     renderWorkerCalendar(false);
-    renderGraphs();
+    renderCharts();
   }, err => {
     console.error(err);
     document.getElementById("syncStatus").innerText = "Firestore error";
@@ -1629,7 +1525,7 @@ function formatMoney(value){
 
 
 function isWorkerExemptFromGeofence(worker){
-  return DRIVER_EXEMPT_WORKERS.includes(worker) || isMasterWorker(worker);
+  return DRIVER_EXEMPT_WORKERS.includes(worker) || MASTER_EXEMPT_WORKERS.includes(worker);
 }
 
 function getAutoStatusBox(){
@@ -1696,7 +1592,7 @@ async function saveAutoRecord(type, worker, site, gps, note){
     geofenceRadius: GEOFENCE_RADIUS_METERS,
     isDriver: DRIVER_EXEMPT_WORKERS.includes(worker),
     driverExempt: DRIVER_EXEMPT_WORKERS.includes(worker),
-    isMaster: isMasterWorker(worker),
+    isMaster: MASTER_EXEMPT_WORKERS.includes(worker),
     autoAttendance: true,
     note: note || "Automatická dochádzka",
     createdAt: firebase.firestore.FieldValue.serverTimestamp()
@@ -1812,14 +1708,47 @@ function resumeAutoAttendanceIfEnabled(){
 }
 
 
-function getDiaryPhotosBase64(){
+function requestNotificationPermission(){
+  const status = document.getElementById("notificationStatus");
+  if(!("Notification" in window)){
+    if(status) status.innerText = "Tento prehliadač nepodporuje notifikácie.";
+    return;
+  }
+  Notification.requestPermission().then(permission => {
+    if(status) status.innerText = permission === "granted" ? "Notifikácie sú povolené." : "Notifikácie nie sú povolené.";
+    if(permission === "granted") sendLocalNotification("Smurfex", "Notifikácie sú zapnuté.");
+  });
+}
+
+function sendLocalNotification(title, body){
+  try{
+    if(!("Notification" in window) || Notification.permission !== "granted") return;
+    if(document.visibilityState === "visible"){
+      // aj keď je aplikácia otvorená, zobrazíme krátku notifikáciu
+    }
+    new Notification(title, { body: body || "", icon: "icon-192.png", badge: "icon-192.png" });
+  }catch(e){ console.warn("Notification error", e); }
+}
+
+function setupDiaryForm(){
+  const date = document.getElementById("diaryDate");
+  if(date && !date.value) date.value = new Date().toISOString().slice(0,10);
+  const chartsMonth = document.getElementById("chartsMonth");
+  if(chartsMonth && !chartsMonth.value) chartsMonth.value = new Date().toISOString().slice(0,7);
+  const site = document.getElementById("diarySite");
+  if(site){
+    const selected = site.value;
+    site.innerHTML = `<option value="">Vyber stavbu</option>` + SITES.map(s => `<option value="${s}">${s}</option>`).join("");
+    if(selected) site.value = selected;
+  }
+}
+
+function readDiaryPhotos(){
   return new Promise(resolve => {
     const input = document.getElementById("diaryPhotos");
     if(!input || !input.files || input.files.length === 0){ resolve([]); return; }
-    const files = Array.from(input.files).slice(0, 6);
-    let done = 0;
-    const result = [];
-    files.forEach(file => {
+    const files = Array.from(input.files).slice(0, 8);
+    const promises = files.map(file => new Promise(res => {
       const reader = new FileReader();
       reader.onload = () => {
         const img = new Image();
@@ -1831,112 +1760,94 @@ function getDiaryPhotosBase64(){
           const canvas = document.createElement("canvas");
           canvas.width = width; canvas.height = height;
           canvas.getContext("2d").drawImage(img, 0, 0, width, height);
-          result.push(canvas.toDataURL("image/jpeg", 0.62));
-          done++; if(done === files.length) resolve(result);
+          res(canvas.toDataURL("image/jpeg", 0.62));
         };
-        img.onerror = () => { done++; if(done === files.length) resolve(result); };
+        img.onerror = () => res(null);
         img.src = reader.result;
       };
-      reader.onerror = () => { done++; if(done === files.length) resolve(result); };
+      reader.onerror = () => res(null);
       reader.readAsDataURL(file);
-    });
+    }));
+    Promise.all(promises).then(items => resolve(items.filter(Boolean)));
   });
 }
 
-async function saveSiteDiary(){
+async function saveDiaryEntry(){
   if(!isAdmin) return;
-  const date = document.getElementById("diaryDate") ? document.getElementById("diaryDate").value : "";
-  const site = document.getElementById("diarySite") ? document.getElementById("diarySite").value : "";
-  const title = document.getElementById("diaryWorkTitle") ? document.getElementById("diaryWorkTitle").value.trim() : "";
-  const description = document.getElementById("diaryDescription") ? document.getElementById("diaryDescription").value.trim() : "";
-  const people = document.getElementById("diaryPeople") ? parseInt(document.getElementById("diaryPeople").value, 10) || 0 : 0;
-  const note = document.getElementById("diaryNote") ? document.getElementById("diaryNote").value.trim() : "";
+  const date = document.getElementById("diaryDate")?.value || new Date().toISOString().slice(0,10);
+  const site = document.getElementById("diarySite")?.value || "";
+  const title = document.getElementById("diaryTitle")?.value.trim() || "";
+  const text = document.getElementById("diaryText")?.value.trim() || "";
+  const workersCount = parseInt(document.getElementById("diaryWorkersCount")?.value || "0", 10) || 0;
   const status = document.getElementById("diaryStatus");
-  if(!date || !site || !description){ alert(t[lang].diaryFill); return; }
-  const photos = await getDiaryPhotosBase64();
+  if(!site || !title || !text){ alert("Vyplň stavbu, názov práce a popis prác."); return; }
+  if(status) status.innerText = "Ukladám stavebný denník...";
+  const photos = await readDiaryPhotos();
   const now = new Date();
-  const diary = { dateISO:date, stavba:site, title, description, people, note, photos,
-    createdAtLocal:now.toISOString(), datum:now.toLocaleDateString("sk-SK"), cas:now.toLocaleTimeString("sk-SK", {hour:"2-digit", minute:"2-digit"}),
-    createdAt: firebase.firestore.FieldValue.serverTimestamp() };
-  await diariesCol.add(diary);
-  ["diaryWorkTitle","diaryDescription","diaryPeople","diaryNote"].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=""; });
-  const p=document.getElementById("diaryPhotos"); if(p) p.value="";
-  if(status) status.innerText = t[lang].diarySaved;
+  const entry = { dateISO: date, stavba: site, title, text, workersCount, photos, createdAtLocal: now.toISOString(), datum: now.toLocaleDateString("sk-SK"), cas: now.toLocaleTimeString("sk-SK", {hour:"2-digit", minute:"2-digit"}), createdAt: firebase.firestore.FieldValue.serverTimestamp() };
+  try{
+    await diariesCol.add(entry);
+    ["diaryTitle","diaryText","diaryWorkersCount","diaryPhotos"].forEach(id => { const el = document.getElementById(id); if(el) el.value = ""; });
+    if(status) status.innerText = "Denný stavebný denník bol uložený.";
+  }catch(e){ console.error(e); if(status) status.innerText = "Denník sa nepodarilo uložiť. Skontroluj Firebase pravidlá."; }
 }
 
 function startDiaryListener(){
   if(unsubscribeDiaries) return;
-  unsubscribeDiaries = diariesCol.orderBy("dateISO", "desc").limit(30).onSnapshot(snapshot => {
-    currentDiaries = snapshot.docs.map(doc => ({ id:doc.id, ...doc.data() }));
-    renderSiteDiaries();
+  unsubscribeDiaries = diariesCol.orderBy("createdAtLocal", "desc").onSnapshot(snapshot => {
+    const previousFirstId = currentDiaries[0] ? currentDiaries[0].id : null;
+    currentDiaries = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    const newest = currentDiaries[0];
+    if(diariesListenerReady && newest && newest.id !== previousFirstId){
+      sendLocalNotification("Nový stavebný denník", `${newest.stavba || "Stavba"} — ${newest.title || "Záznam"}`);
+    }
+    diariesListenerReady = true;
+    renderDiaryList();
   }, err => console.error(err));
 }
 
-function renderSiteDiaries(){
-  const box = document.getElementById("siteDiaries");
+function renderDiaryList(){
+  const box = document.getElementById("diaryList");
   if(!box || !isAdmin) return;
-  if(currentDiaries.length === 0){ box.innerHTML = `<p>${t[lang].noDiaries}</p>`; return; }
-  box.innerHTML = currentDiaries.map(d => `
+  if(currentDiaries.length === 0){ box.innerHTML = `<p class="sub">Zatiaľ nie je uložený žiadny stavebný denník.</p>`; return; }
+  box.innerHTML = currentDiaries.slice(0, 20).map(d => `
     <div class="record">
-      <b>🏗 ${escapeHtml(d.stavba)} — ${escapeHtml(d.dateISO)}</b><br>
-      ${d.title ? `<b>${escapeHtml(d.title)}</b><br>` : ""}
-      ${escapeHtml(d.description).replace(/\n/g,"<br>")}<br>
-      ${t[lang].diaryPeople}: <b>${d.people || 0}</b><br>
-      ${d.note ? `${t[lang].diaryNote}: ${escapeHtml(d.note)}<br>` : ""}
-      ${(d.photos || []).map(src => `<img src="${src}" alt="foto" style="width:100%;max-width:220px;border-radius:12px;margin:8px 6px 0 0;">`).join("")}
-      <br><button class="small" onclick="printSiteDiary('${d.id}')">${t[lang].printDiaryBtn}</button>
+      <span class="badge">${d.dateISO || ""}</span> <b>🏗 ${d.stavba || ""}</b><br>
+      <b>${escapeHtml(d.title || "")}</b><br>
+      <p>${escapeHtml(d.text || "").replace(/\n/g,"<br>")}</p>
+      Počet pracovníkov: <b>${d.workersCount || 0}</b><br>
+      Fotky: <b>${(d.photos || []).length}</b><br>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">${(d.photos || []).slice(0,8).map(p => `<img src="${p}" style="width:96px;height:96px;object-fit:cover;border-radius:12px">`).join("")}</div>
     </div>`).join("");
 }
 
-function printSiteDiary(id){
-  const d = currentDiaries.find(x => x.id === id);
-  if(!d) return;
-  const photos = (d.photos || []).map(src => `<img src="${src}" style="width:48%;margin:1%;border-radius:10px;">`).join("");
-  const w = window.open("", "_blank");
-  w.document.write(`<!doctype html><html><head><title>Smurfex denník</title><style>body{font-family:Arial;padding:24px} h1{color:#2c9ed4} .box{border:1px solid #ddd;border-radius:12px;padding:16px;margin:12px 0}</style></head><body>
-    <h1>SMURFEX s.r.o. — Denný stavebný denník</h1>
-    <div class="box"><b>Dátum:</b> ${escapeHtml(d.dateISO)}<br><b>Stavba:</b> ${escapeHtml(d.stavba)}<br><b>Počet pracovníkov:</b> ${d.people || 0}</div>
-    <h2>${escapeHtml(d.title || "Práce")}</h2><p>${escapeHtml(d.description).replace(/\n/g,"<br>")}</p>
-    ${d.note ? `<h3>Poznámka</h3><p>${escapeHtml(d.note)}</p>` : ""}
-    <h3>Fotodokumentácia</h3>${photos || "Bez fotografií"}
-  </body></html>`);
-  w.document.close(); w.focus(); w.print();
+function escapeHtml(str){ return String(str).replace(/[&<>"']/g, s => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"}[s])); }
+
+function printDiaryReport(){
+  if(!isAdmin) return;
+  const month = document.getElementById("chartsMonth")?.value || new Date().toISOString().slice(0,7);
+  const rows = currentDiaries.filter(d => (d.dateISO || "").slice(0,7) === month);
+  if(rows.length === 0){ alert("Pre vybraný mesiac nie sú stavebné denníky."); return; }
+  const html = `<!doctype html><html><head><meta charset="utf-8"><title>Smurfex stavebný denník ${month}</title><style>body{font-family:Arial;padding:24px} .entry{border-bottom:1px solid #ccc;padding:14px 0} img{width:150px;border-radius:8px;margin:5px}</style></head><body><h1>Smurfex s.r.o. — Denný stavebný denník</h1><h2>${month}</h2>${rows.map(d => `<div class="entry"><h3>${d.dateISO || ""} — ${d.stavba || ""}</h3><b>${escapeHtml(d.title || "")}</b><p>${escapeHtml(d.text || "").replace(/\n/g,"<br>")}</p><p>Počet pracovníkov: <b>${d.workersCount || 0}</b></p>${(d.photos || []).map(p => `<img src="${p}">`).join("")}</div>`).join("")}<script>window.onload=function(){window.print()}</script></body></html>`;
+  const w = window.open("", "_blank"); w.document.open(); w.document.write(html); w.document.close();
 }
 
-function renderGraphs(){
-  const box = document.getElementById("graphsBox");
+function renderCharts(){
+  const box = document.getElementById("chartsBox");
   if(!box || !isAdmin) return;
-  const report = getMonthlySummary();
-  const rows = report.rows || [];
-  const byWorker = {};
-  const bySite = {};
-  rows.forEach(r => {
-    byWorker[r.worker] = (byWorker[r.worker] || 0) + (r.minutes || 0);
-    bySite[r.site || "Bez stavby"] = (bySite[r.site || "Bez stavby"] || 0) + (r.minutes || 0);
-  });
-  const renderBars = (obj) => {
-    const max = Math.max(1, ...Object.values(obj));
-    return Object.entries(obj).sort((a,b)=>b[1]-a[1]).map(([name,min]) => `
-      <div class="barRow"><span>${escapeHtml(name)}</span><b>${formatMinutes(min)}</b></div>
-      <div class="bar"><i style="width:${Math.max(4, Math.round(min/max*100))}%"></i></div>`).join("") || `<p>${t[lang].reportNoData}</p>`;
-  };
-  box.innerHTML = `<div class="record"><b>${t[lang].graphHoursWorkers}</b>${renderBars(byWorker)}</div><div class="record"><b>${t[lang].graphHoursSites}</b>${renderBars(bySite)}</div>`;
+  const month = document.getElementById("chartsMonth")?.value || new Date().toISOString().slice(0,7);
+  const monthRecords = currentRecords.filter(r => (r.dateISO || "").slice(0,7) === month).slice().sort((a,b)=>(a.createdAtLocal||"").localeCompare(b.createdAtLocal||""));
+  const pairs = buildMonthlyPairs(monthRecords);
+  if(pairs.length === 0){ box.innerHTML = `<p class="sub">Pre vybraný mesiac zatiaľ nie sú dáta na grafy.</p>`; return; }
+  const byWorker = {}, bySite = {};
+  pairs.forEach(r => { byWorker[r.worker] = (byWorker[r.worker] || 0) + (r.minutes || 0); bySite[r.site || "Bez stavby"] = (bySite[r.site || "Bez stavby"] || 0) + (r.minutes || 0); });
+  box.innerHTML = `<div class="grid2"><div>${renderBarChart("Hodiny podľa pracovníka", byWorker)}</div><div>${renderBarChart("Hodiny podľa stavby", bySite)}</div></div>`;
 }
 
-function renderMasterSettings(){
-  const box = document.getElementById("masterSettings");
-  if(!box || !isAdmin) return;
-  const masters = getMasterWorkers();
-  box.innerHTML = `<p class="sub">${t[lang].masterHint}</p>` + WORKERS.map(w => `
-    <label class="checkLine"><input type="checkbox" class="masterCheck" value="${w}" ${masters.includes(w) ? "checked" : ""}> ${w}${DRIVER_EXEMPT_WORKERS.includes(w) ? " 🚛" : ""}</label>
-  `).join("") + `<button class="small" onclick="saveMasterSettings()">${t[lang].saveMastersBtn}</button><p id="masterStatus" class="sub"></p>`;
-}
-
-function saveMasterSettings(){
-  const list = Array.from(document.querySelectorAll(".masterCheck:checked")).map(x => x.value);
-  saveMasterWorkers(list);
-  const s = document.getElementById("masterStatus"); if(s) s.innerText = t[lang].mastersSaved;
-  fillSelects();
+function renderBarChart(title, dataObj){
+  const entries = Object.entries(dataObj).sort((a,b)=>b[1]-a[1]);
+  const max = Math.max(1, ...entries.map(e=>e[1]));
+  return `<div class="kpi"><b>📊 ${title}</b>${entries.map(([name,min]) => `<div style="margin-top:10px"><span>${name}</span><span style="float:right"><b>${formatMinutes(min)}</b></span><div class="chartBar" style="width:${Math.max(3, Math.round((min/max)*100))}%"></div></div>`).join("")}</div>`;
 }
 
 async function clearRecords(){
@@ -1959,4 +1870,5 @@ fillRequestTypeTexts();
 setLang(lang);
 renderAutoControls();
 resumeAutoAttendanceIfEnabled();
+setupDiaryForm();
 renderAdminState();
