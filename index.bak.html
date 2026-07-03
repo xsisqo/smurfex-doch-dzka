@@ -84,13 +84,6 @@
         <option value="other" data-i18n="requestOther">Iné</option>
       </select>
 
-      <label data-i18n="requestPriorityLabel">Priorita</label>
-      <select id="requestPriority">
-        <option value="normal" data-i18n="priorityNormal">Normálna</option>
-        <option value="urgent" data-i18n="priorityUrgent">Urgentná</option>
-        <option value="low" data-i18n="priorityLow">Nízka</option>
-      </select>
-
       <label data-i18n="requestTextLabel">Text požiadavky</label>
       <textarea id="requestText" data-i18n-placeholder="requestTextPlaceholder" placeholder="Napr. potrebujeme sadrokartón, skrutky, penu, kotúče..."></textarea>
 
@@ -115,42 +108,6 @@
 
         <h2 data-i18n="sitesDashboardTitle">Dashboard stavieb</h2>
         <div id="siteDashboard"></div>
-
-        <h2 data-i18n="diaryTitle">Denný stavebný denník</h2>
-        <div class="record">
-          <label data-i18n="diaryDate">Dátum denníka</label>
-          <input id="diaryDate" type="date">
-          <label data-i18n="siteLabel">Stavba</label>
-          <select id="diarySite">
-            <option value="STRABAG letisko">STRABAG letisko</option>
-            <option value="STRABAG nemocnica">STRABAG nemocnica</option>
-          </select>
-          <label data-i18n="diaryWorkTitle">Názov práce</label>
-          <input id="diaryWorkTitle" data-i18n-placeholder="diaryWorkPlaceholder" placeholder="Napr. Montáž SDK priečok">
-          <label data-i18n="diaryDescription">Popis prác</label>
-          <textarea id="diaryDescription" data-i18n-placeholder="diaryDescriptionPlaceholder" placeholder="Popíš, čo sa dnes robilo na stavbe..."></textarea>
-          <label data-i18n="diaryPeople">Počet pracovníkov</label>
-          <input id="diaryPeople" type="number" min="0" step="1" value="0">
-          <label data-i18n="diaryNote">Poznámka</label>
-          <textarea id="diaryNote"></textarea>
-          <label data-i18n="diaryPhotos">Fotodokumentácia</label>
-          <input id="diaryPhotos" type="file" accept="image/*" multiple>
-          <button class="small" onclick="saveSiteDiary()" data-i18n="diarySaveBtn">Uložiť stavebný denník</button>
-          <p id="diaryStatus" class="sub"></p>
-        </div>
-
-        <h2 data-i18n="diaryAdminTitle">Stavebné denníky a fotodokumentácia</h2>
-        <div id="siteDiaries"></div>
-
-        <h2 data-i18n="graphsTitle">Grafy a štatistiky</h2>
-        <div id="graphsBox"></div>
-
-        <h2 data-i18n="masterTitle">Majstri a výnimky</h2>
-        <div id="masterSettings"></div>
-
-        <h2 data-i18n="pushTitle">Push notifikácie</h2>
-        <div class="record"><p data-i18n="pushInfo">Mobilné push notifikácie vyžadujú Firebase Cloud Messaging alebo natívnu Android aplikáciu. V tejto PWA sú zatiaľ dostupné posledné udalosti v admin paneli.</p></div>
-
         <h2 data-i18n="reportTitle">Mesačný výkaz</h2>
         <div class="record">
           <label data-i18n="reportWorker">Pracovník pre výkaz</label>
@@ -160,7 +117,7 @@
           <input id="reportMonth" type="month">
 
           <div class="buttons">
-            <button class="small" onclick="renderMonthlyReport(); renderGraphs();" data-i18n="showReportBtn">Zobraziť výkaz</button>
+            <button class="small" onclick="renderMonthlyReport()" data-i18n="showReportBtn">Zobraziť výkaz</button>
             <button class="small" onclick="printMonthlyReport()" data-i18n="pdfReportBtn">PDF výkaz</button>
             <button class="small" onclick="exportMonthlyCSV()" data-i18n="csvReportBtn">CSV výkaz</button>
           </div>
@@ -214,11 +171,10 @@
         <button class="small danger" onclick="clearRecords()" data-i18n="clearBtn">Vymazať záznamy</button>
       </div>
     </section>
-    <p class="version">Smurfex Dochádzka PRO v1.1.0</p>
   </main>
 
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
-  <script src="app.js?v=smurfex-pro-full-20260703-v3"></script>
+  <script src="app.js?v=smurfex-pro-all-final-20260703-2"></script>
 </body>
 </html>
