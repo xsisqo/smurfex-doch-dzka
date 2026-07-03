@@ -3,16 +3,36 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Smurfex Dochádzka / Attendance</title>
+  <title>Smurfex Dochádzka PRO v1.1.0</title>
   <meta name="theme-color" content="#56b9e8">
   <link rel="manifest" href="manifest.json">
   <link rel="icon" href="icon-192.png">
   <link rel="stylesheet" href="style.css">
 
+  <style>
+    .notice {
+      background: #fff3cd;
+      border: 1px solid #ffe69c;
+      color: #856404;
+      padding: 12px;
+      border-radius: 10px;
+      margin: 14px 0 16px;
+      font-size: 14px;
+      line-height: 1.45;
+      text-align: center;
+      font-weight: 700;
+    }
+    textarea {
+      width: 100%;
+      min-height: 90px;
+      resize: vertical;
+      box-sizing: border-box;
+    }
+  </style>
 </head>
 <body>
-  <main class="app" id="top">
-    <section class="card" id="attendance">
+  <main class="app">
+    <section class="card">
       <img src="logo.png" class="logo" alt="Smurfex s.r.o.">
 
       <div class="lang">
@@ -21,7 +41,6 @@
         <button class="langBtn" onclick="setLang('hi')" id="btn-hi">हिन्दी</button>
       </div>
 
-      <div style="text-align:center"><span class="top-badge">SMURFEX PRO</span></div>
       <h1 data-i18n="title">Dochádzka</h1>
       <p class="sub" data-i18n="subtitle">Online evidencia príchodu a odchodu</p>
 
@@ -46,14 +65,14 @@
       <p id="syncStatus" class="sub"></p>
     </section>
 
-    <section class="card" id="weather">
+    <section class="card">
       <h2 data-i18n="weatherTitle">Počasie na stavbe</h2>
       <div id="weatherBox"><p data-i18n="weatherHint">Vyber stavbu a zobrazí sa aktuálne počasie.</p></div>
       <button class="small" onclick="renderWeatherForSelectedSite()" data-i18n="weatherLoad">Načítať počasie</button>
     </section>
 
 
-    <section class="card" id="requests">
+    <section class="card">
       <h2 data-i18n="requestTitle">Požiadavka pre admina</h2>
       <p class="sub" data-i18n="requestHint">Ak potrebuješ materiál, náradie alebo máš inú požiadavku, napíš ju sem.</p>
 
@@ -72,7 +91,7 @@
       <p id="requestStatus" class="sub"></p>
     </section>
 
-    <section class="card" id="admin">
+    <section class="card">
       <h2 data-i18n="adminTitle">Administrátor</h2>
       <button class="small" onclick="adminLogin()" id="adminLoginBtn" data-i18n="adminLoginBtn">Admin prihlásenie</button>
       <button class="small danger" onclick="adminLogout()" id="adminLogoutBtn" style="display:none" data-i18n="adminLogoutBtn">Odhlásiť admina</button>
@@ -89,43 +108,6 @@
 
         <h2 data-i18n="sitesDashboardTitle">Dashboard stavieb</h2>
         <div id="siteDashboard"></div>
-
-
-        <h2>🔔 Push / lokálne notifikácie</h2>
-        <div class="record">
-          <p class="sub">Zapne upozornenia v prehliadači pre nové príchody, odchody, požiadavky a stavebný denník. Funguje hlavne keď je aplikácia otvorená alebo aktívna.</p>
-          <button class="small" onclick="requestNotificationPermission()">Povoliť notifikácie</button>
-          <p id="notificationStatus" class="sub"></p>
-        </div>
-
-        <h2>🏗 Denný stavebný denník</h2>
-        <div class="record">
-          <label>Dátum</label>
-          <input id="diaryDate" type="date">
-          <label>Stavba</label>
-          <select id="diarySite"></select>
-          <label>Názov práce</label>
-          <input id="diaryTitle" placeholder="Napr. Montáž priečok, zemné práce, betonáž...">
-          <label>Popis vykonaných prác</label>
-          <textarea id="diaryText" placeholder="Čo sa dnes spravilo, koľko ľudí bolo na stavbe, problémy, poznámky..."></textarea>
-          <label>Počet pracovníkov</label>
-          <input id="diaryWorkersCount" type="number" min="0" step="1" placeholder="0">
-          <label>Fotodokumentácia</label>
-          <input id="diaryPhotos" type="file" accept="image/*" multiple>
-          <button class="small" onclick="saveDiaryEntry()">Uložiť stavebný denník</button>
-          <button class="small" onclick="printDiaryReport()">PDF / tlač denníka</button>
-          <p id="diaryStatus" class="sub"></p>
-        </div>
-        <div id="diaryList"></div>
-
-        <h2>📊 Grafy a štatistiky</h2>
-        <div class="record">
-          <label>Mesiac pre grafy</label>
-          <input id="chartsMonth" type="month" onchange="renderCharts()">
-          <button class="small" onclick="renderCharts()">Obnoviť grafy</button>
-          <div id="chartsBox"></div>
-        </div>
-
         <h2 data-i18n="reportTitle">Mesačný výkaz</h2>
         <div class="record">
           <label data-i18n="reportWorker">Pracovník pre výkaz</label>
@@ -189,19 +171,10 @@
         <button class="small danger" onclick="clearRecords()" data-i18n="clearBtn">Vymazať záznamy</button>
       </div>
     </section>
-    <p class="app-version">Smurfex Dochádzka PRO · mobile-first UI v1.1.0</p>
   </main>
-
-
-  <nav class="bottom-nav" aria-label="Smurfex navigácia">
-    <a href="#attendance"><span>🕒</span>Dochádzka</a>
-    <a href="#requests"><span>📩</span>Požiadavky</a>
-    <a href="#weather"><span>🌤</span>Počasie</a>
-    <a href="#admin"><span>👨‍💼</span>Admin</a>
-  </nav>
 
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
-  <script src="app.js?v=smurfex-pro-ui-v110"></script>
+  <script src="app.js?v=mzdy-obedy-soferi-2"></script>
 </body>
 </html>

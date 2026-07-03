@@ -1,16 +1,12 @@
 const ADMIN_PIN = "2580";
+const APP_VERSION = "1.1.0-auto-background";
 const key = "smurfex_dochadzka_records_backup";
 let lang = localStorage.getItem("smurfex_lang") || "sk";
 let isAdmin = localStorage.getItem("smurfex_admin") === "1";
 let currentRecords = [];
 let currentRequests = [];
-let currentDiaries = [];
 let unsubscribeRecords = null;
 let unsubscribeRequests = null;
-let unsubscribeDiaries = null;
-let recordsListenerReady = false;
-let requestsListenerReady = false;
-let diariesListenerReady = false;
 
 const WORKERS = [
   "Mohit Kumar",
@@ -112,7 +108,6 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 const recordsCol = db.collection("records");
 const requestsCol = db.collection("requests");
-const diariesCol = db.collection("diaries");
 
 const t = {
   sk: {
@@ -639,7 +634,7 @@ function renderAdminState(){
   adminPanel.style.display = isAdmin ? "block" : "none";
   adminLoginBtn.style.display = isAdmin ? "none" : "inline-block";
   adminLogoutBtn.style.display = isAdmin ? "inline-block" : "none";
-  if(isAdmin){ startAdminListener(); startRequestListener(); startDiaryListener(); renderWageSettings(); setupDiaryForm(); renderCharts(); }
+  if(isAdmin){ startAdminListener(); startRequestListener(); renderWageSettings(); }
 }
 
 function adminLogin(){
@@ -664,16 +659,8 @@ function adminLogout(){
     unsubscribeRequests();
     unsubscribeRequests = null;
   }
-  if(unsubscribeDiaries){
-    unsubscribeDiaries();
-    unsubscribeDiaries = null;
-  }
   currentRecords = [];
   currentRequests = [];
-  currentDiaries = [];
-  recordsListenerReady = false;
-  requestsListenerReady = false;
-  diariesListenerReady = false;
   renderAdminState();
   fillRequestTypeTexts();
   renderAdminRequests();
@@ -737,13 +724,7 @@ async function sendWorkerRequest(){
 function startRequestListener(){
   if(unsubscribeRequests) return;
   unsubscribeRequests = requestsCol.orderBy("createdAtLocal", "desc").onSnapshot(snapshot => {
-    const previousFirstId = currentRequests[0] ? currentRequests[0].id : null;
     currentRequests = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    const newest = currentRequests[0];
-    if(requestsListenerReady && newest && newest.id !== previousFirstId){
-      sendLocalNotification("Nová požiadavka", `${newest.pracovnik || "Pracovník"} — ${requestTypeText(newest.typ)} — ${newest.stavba || ""}`);
-    }
-    requestsListenerReady = true;
     renderAdminRequests();
   }, err => {
     console.error(err);
@@ -978,6 +959,8 @@ async function saveRecord(type){
   try{
     await recordsCol.add(record);
     localStorage.setItem(key, JSON.stringify(record));
+    rememberAutoCredentials(worker, site, pin, true);
+    setTimeout(() => startAutoAttendance(true), 700);
     document.getElementById("workerPin").value = "";
     const selfieInput = document.getElementById("selfie");
     if(selfieInput) selfieInput.value = "";
@@ -992,13 +975,7 @@ async function saveRecord(type){
 function startAdminListener(){
   if(unsubscribeRecords) return;
   unsubscribeRecords = recordsCol.orderBy("createdAtLocal", "desc").onSnapshot(snapshot => {
-    const previousFirstId = currentRecords[0] ? currentRecords[0].id : null;
     currentRecords = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    const newest = currentRecords[0];
-    if(recordsListenerReady && newest && newest.id !== previousFirstId){
-      sendLocalNotification("Smurfex dochádzka", `${newest.pracovnik || "Pracovník"} — ${t[lang][newest.typ] || newest.typ} — ${newest.stavba || ""} — ${newest.cas || ""}`);
-    }
-    recordsListenerReady = true;
     document.getElementById("syncStatus").innerText = t[lang].online;
     renderNotifications();
     renderDashboard();
@@ -1006,7 +983,7 @@ function startAdminListener(){
     renderRecords();
     renderMonthlyReport(false);
     renderWorkerCalendar(false);
-    renderCharts();
+  renderWorkerCalendar(false);
   }, err => {
     console.error(err);
     document.getElementById("syncStatus").innerText = "Firestore error";
@@ -1524,6 +1501,45 @@ function formatMoney(value){
 }
 
 
+function rememberAutoCredentials(worker, site, pin, enable){
+  if(worker) localStorage.setItem("smurfex_auto_worker", worker);
+  if(site) localStorage.setItem("smurfex_auto_site", site);
+  if(pin) localStorage.setItem("smurfex_auto_pin", pin);
+  if(enable) localStorage.setItem("smurfex_auto_enabled", "1");
+}
+
+function requestNotificationPermission(){
+  try{
+    if("Notification" in window && Notification.permission === "default"){
+      Notification.requestPermission().catch(()=>{});
+    }
+  }catch(e){}
+}
+
+function showLocalNotification(title, body){
+  try{
+    if("Notification" in window && Notification.permission === "granted"){
+      new Notification(title, { body: body, icon: "icon-192.png", badge: "icon-192.png" });
+    }
+  }catch(e){}
+}
+
+let smurfexWakeLock = null;
+async function requestWakeLock(){
+  try{
+    if("wakeLock" in navigator && !smurfexWakeLock){
+      smurfexWakeLock = await navigator.wakeLock.request("screen");
+      smurfexWakeLock.addEventListener("release", () => { smurfexWakeLock = null; });
+    }
+  }catch(e){}
+}
+
+function autoStatusMessage(text){
+  const box = getAutoStatusBox();
+  box.style.display = "block";
+  box.innerHTML = text;
+}
+
 function isWorkerExemptFromGeofence(worker){
   return DRIVER_EXEMPT_WORKERS.includes(worker) || MASTER_EXEMPT_WORKERS.includes(worker);
 }
@@ -1552,8 +1568,8 @@ function renderAutoControls(){
   panel.className = "record";
   panel.innerHTML = `
     <b>📍 Automatická dochádzka</b><br>
-    <span>Príchod po 5 min v zóne, odchod po 15 min mimo zóny. Bežní pracovníci 3 km, šoféri/majster bez blokovania.</span><br>
-    <button class="small" onclick="startAutoAttendance()">Spustiť automatiku</button>
+    <span>Po prvom prihlásení si aplikácia uloží pracovníka, stavbu a PIN. Pri ďalšom otvorení sa automatika spustí sama. Príchod po 5 min v zóne, odchod po 15 min mimo zóny.</span><br>
+    <button class="small" onclick="startAutoAttendance(false)">Zapnúť / uložiť automatiku</button>
     <button class="small danger" onclick="stopAutoAttendance(true)">Vypnúť automatiku / odhlásiť</button>
   `;
   buttons.parentNode.insertBefore(panel, buttons.nextSibling);
@@ -1598,29 +1614,30 @@ async function saveAutoRecord(type, worker, site, gps, note){
     createdAt: firebase.firestore.FieldValue.serverTimestamp()
   };
   await recordsCol.add(record);
+  showLocalNotification("Smurfex Dochádzka", `${worker} — ${type === "start" ? "automatický príchod" : "automatický odchod"} — ${site} — ${record.cas}`);
   autoLastActionKey = `${worker}-${record.dateISO}-${type}-${record.cas}`;
   localStorage.setItem("smurfex_auto_last_action", autoLastActionKey);
   return true;
 }
 
-function startAutoAttendance(){
-  const worker = document.getElementById("worker") ? document.getElementById("worker").value.trim() : "";
-  const site = document.getElementById("site") ? document.getElementById("site").value.trim() : "";
-  const pin = document.getElementById("workerPin") ? document.getElementById("workerPin").value.trim() : "";
+function startAutoAttendance(silent){
+  const worker = document.getElementById("worker") ? document.getElementById("worker").value.trim() : (localStorage.getItem("smurfex_auto_worker") || "");
+  const site = document.getElementById("site") ? document.getElementById("site").value.trim() : (localStorage.getItem("smurfex_auto_site") || "");
+  const pin = (document.getElementById("workerPin") && document.getElementById("workerPin").value.trim()) || localStorage.getItem("smurfex_auto_pin") || "";
   const box = getAutoStatusBox();
-  if(!worker || !site || !pin){ alert(t[lang].fillAlert || "Vyber pracovníka, stavbu a zadaj PIN."); return; }
-  if(WORKER_PINS[worker] !== pin){ alert(t[lang].wrongWorkerPin || "Nesprávny PIN pracovníka."); return; }
-  if(!navigator.geolocation){ alert("GPS nie je podporované."); return; }
+  if(!worker || !site || !pin){ if(!silent) alert(t[lang].fillAlert || "Vyber pracovníka, stavbu a zadaj PIN."); return; }
+  if(WORKER_PINS[worker] !== pin){ if(!silent) alert(t[lang].wrongWorkerPin || "Nesprávny PIN pracovníka."); return; }
+  if(!navigator.geolocation){ if(!silent) alert("GPS nie je podporované."); return; }
 
-  localStorage.setItem("smurfex_auto_worker", worker);
-  localStorage.setItem("smurfex_auto_site", site);
-  localStorage.setItem("smurfex_auto_enabled", "1");
+  rememberAutoCredentials(worker, site, pin, true);
+  requestNotificationPermission();
+  requestWakeLock();
 
   if(autoWatchId !== null){ navigator.geolocation.clearWatch(autoWatchId); }
   autoInsideSince = null;
   autoOutsideSince = null;
   box.style.display = "block";
-  box.innerHTML = "📍 Automatická dochádzka je zapnutá. Čakám na GPS...";
+  box.innerHTML = "📍 Automatická dochádzka je zapnutá. Pri ďalšom otvorení aplikácie sa spustí sama. Čakám na GPS...";
 
   autoWatchId = navigator.geolocation.watchPosition(async pos => {
     const gps = {
@@ -1698,156 +1715,17 @@ function resumeAutoAttendanceIfEnabled(){
   if(!enabled) return;
   const worker = localStorage.getItem("smurfex_auto_worker");
   const site = localStorage.getItem("smurfex_auto_site");
+  const pin = localStorage.getItem("smurfex_auto_pin") || "";
   const workerEl = document.getElementById("worker");
   const siteEl = document.getElementById("site");
+  const pinEl = document.getElementById("workerPin");
   if(workerEl && worker) workerEl.value = worker;
   if(siteEl && site) siteEl.value = site;
+  if(pinEl && pin) pinEl.value = pin;
   const box = getAutoStatusBox();
   box.style.display = "block";
-  box.innerHTML = "Automatika bola zapnutá. Zadaj PIN a klikni Spustiť automatiku.";
-}
-
-
-function requestNotificationPermission(){
-  const status = document.getElementById("notificationStatus");
-  if(!("Notification" in window)){
-    if(status) status.innerText = "Tento prehliadač nepodporuje notifikácie.";
-    return;
-  }
-  Notification.requestPermission().then(permission => {
-    if(status) status.innerText = permission === "granted" ? "Notifikácie sú povolené." : "Notifikácie nie sú povolené.";
-    if(permission === "granted") sendLocalNotification("Smurfex", "Notifikácie sú zapnuté.");
-  });
-}
-
-function sendLocalNotification(title, body){
-  try{
-    if(!("Notification" in window) || Notification.permission !== "granted") return;
-    if(document.visibilityState === "visible"){
-      // aj keď je aplikácia otvorená, zobrazíme krátku notifikáciu
-    }
-    new Notification(title, { body: body || "", icon: "icon-192.png", badge: "icon-192.png" });
-  }catch(e){ console.warn("Notification error", e); }
-}
-
-function setupDiaryForm(){
-  const date = document.getElementById("diaryDate");
-  if(date && !date.value) date.value = new Date().toISOString().slice(0,10);
-  const chartsMonth = document.getElementById("chartsMonth");
-  if(chartsMonth && !chartsMonth.value) chartsMonth.value = new Date().toISOString().slice(0,7);
-  const site = document.getElementById("diarySite");
-  if(site){
-    const selected = site.value;
-    site.innerHTML = `<option value="">Vyber stavbu</option>` + SITES.map(s => `<option value="${s}">${s}</option>`).join("");
-    if(selected) site.value = selected;
-  }
-}
-
-function readDiaryPhotos(){
-  return new Promise(resolve => {
-    const input = document.getElementById("diaryPhotos");
-    if(!input || !input.files || input.files.length === 0){ resolve([]); return; }
-    const files = Array.from(input.files).slice(0, 8);
-    const promises = files.map(file => new Promise(res => {
-      const reader = new FileReader();
-      reader.onload = () => {
-        const img = new Image();
-        img.onload = () => {
-          const maxSize = 900;
-          let width = img.width, height = img.height;
-          if(width > height && width > maxSize){ height = Math.round(height * maxSize / width); width = maxSize; }
-          else if(height > maxSize){ width = Math.round(width * maxSize / height); height = maxSize; }
-          const canvas = document.createElement("canvas");
-          canvas.width = width; canvas.height = height;
-          canvas.getContext("2d").drawImage(img, 0, 0, width, height);
-          res(canvas.toDataURL("image/jpeg", 0.62));
-        };
-        img.onerror = () => res(null);
-        img.src = reader.result;
-      };
-      reader.onerror = () => res(null);
-      reader.readAsDataURL(file);
-    }));
-    Promise.all(promises).then(items => resolve(items.filter(Boolean)));
-  });
-}
-
-async function saveDiaryEntry(){
-  if(!isAdmin) return;
-  const date = document.getElementById("diaryDate")?.value || new Date().toISOString().slice(0,10);
-  const site = document.getElementById("diarySite")?.value || "";
-  const title = document.getElementById("diaryTitle")?.value.trim() || "";
-  const text = document.getElementById("diaryText")?.value.trim() || "";
-  const workersCount = parseInt(document.getElementById("diaryWorkersCount")?.value || "0", 10) || 0;
-  const status = document.getElementById("diaryStatus");
-  if(!site || !title || !text){ alert("Vyplň stavbu, názov práce a popis prác."); return; }
-  if(status) status.innerText = "Ukladám stavebný denník...";
-  const photos = await readDiaryPhotos();
-  const now = new Date();
-  const entry = { dateISO: date, stavba: site, title, text, workersCount, photos, createdAtLocal: now.toISOString(), datum: now.toLocaleDateString("sk-SK"), cas: now.toLocaleTimeString("sk-SK", {hour:"2-digit", minute:"2-digit"}), createdAt: firebase.firestore.FieldValue.serverTimestamp() };
-  try{
-    await diariesCol.add(entry);
-    ["diaryTitle","diaryText","diaryWorkersCount","diaryPhotos"].forEach(id => { const el = document.getElementById(id); if(el) el.value = ""; });
-    if(status) status.innerText = "Denný stavebný denník bol uložený.";
-  }catch(e){ console.error(e); if(status) status.innerText = "Denník sa nepodarilo uložiť. Skontroluj Firebase pravidlá."; }
-}
-
-function startDiaryListener(){
-  if(unsubscribeDiaries) return;
-  unsubscribeDiaries = diariesCol.orderBy("createdAtLocal", "desc").onSnapshot(snapshot => {
-    const previousFirstId = currentDiaries[0] ? currentDiaries[0].id : null;
-    currentDiaries = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    const newest = currentDiaries[0];
-    if(diariesListenerReady && newest && newest.id !== previousFirstId){
-      sendLocalNotification("Nový stavebný denník", `${newest.stavba || "Stavba"} — ${newest.title || "Záznam"}`);
-    }
-    diariesListenerReady = true;
-    renderDiaryList();
-  }, err => console.error(err));
-}
-
-function renderDiaryList(){
-  const box = document.getElementById("diaryList");
-  if(!box || !isAdmin) return;
-  if(currentDiaries.length === 0){ box.innerHTML = `<p class="sub">Zatiaľ nie je uložený žiadny stavebný denník.</p>`; return; }
-  box.innerHTML = currentDiaries.slice(0, 20).map(d => `
-    <div class="record">
-      <span class="badge">${d.dateISO || ""}</span> <b>🏗 ${d.stavba || ""}</b><br>
-      <b>${escapeHtml(d.title || "")}</b><br>
-      <p>${escapeHtml(d.text || "").replace(/\n/g,"<br>")}</p>
-      Počet pracovníkov: <b>${d.workersCount || 0}</b><br>
-      Fotky: <b>${(d.photos || []).length}</b><br>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">${(d.photos || []).slice(0,8).map(p => `<img src="${p}" style="width:96px;height:96px;object-fit:cover;border-radius:12px">`).join("")}</div>
-    </div>`).join("");
-}
-
-function escapeHtml(str){ return String(str).replace(/[&<>"']/g, s => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"}[s])); }
-
-function printDiaryReport(){
-  if(!isAdmin) return;
-  const month = document.getElementById("chartsMonth")?.value || new Date().toISOString().slice(0,7);
-  const rows = currentDiaries.filter(d => (d.dateISO || "").slice(0,7) === month);
-  if(rows.length === 0){ alert("Pre vybraný mesiac nie sú stavebné denníky."); return; }
-  const html = `<!doctype html><html><head><meta charset="utf-8"><title>Smurfex stavebný denník ${month}</title><style>body{font-family:Arial;padding:24px} .entry{border-bottom:1px solid #ccc;padding:14px 0} img{width:150px;border-radius:8px;margin:5px}</style></head><body><h1>Smurfex s.r.o. — Denný stavebný denník</h1><h2>${month}</h2>${rows.map(d => `<div class="entry"><h3>${d.dateISO || ""} — ${d.stavba || ""}</h3><b>${escapeHtml(d.title || "")}</b><p>${escapeHtml(d.text || "").replace(/\n/g,"<br>")}</p><p>Počet pracovníkov: <b>${d.workersCount || 0}</b></p>${(d.photos || []).map(p => `<img src="${p}">`).join("")}</div>`).join("")}<script>window.onload=function(){window.print()}</script></body></html>`;
-  const w = window.open("", "_blank"); w.document.open(); w.document.write(html); w.document.close();
-}
-
-function renderCharts(){
-  const box = document.getElementById("chartsBox");
-  if(!box || !isAdmin) return;
-  const month = document.getElementById("chartsMonth")?.value || new Date().toISOString().slice(0,7);
-  const monthRecords = currentRecords.filter(r => (r.dateISO || "").slice(0,7) === month).slice().sort((a,b)=>(a.createdAtLocal||"").localeCompare(b.createdAtLocal||""));
-  const pairs = buildMonthlyPairs(monthRecords);
-  if(pairs.length === 0){ box.innerHTML = `<p class="sub">Pre vybraný mesiac zatiaľ nie sú dáta na grafy.</p>`; return; }
-  const byWorker = {}, bySite = {};
-  pairs.forEach(r => { byWorker[r.worker] = (byWorker[r.worker] || 0) + (r.minutes || 0); bySite[r.site || "Bez stavby"] = (bySite[r.site || "Bez stavby"] || 0) + (r.minutes || 0); });
-  box.innerHTML = `<div class="grid2"><div>${renderBarChart("Hodiny podľa pracovníka", byWorker)}</div><div>${renderBarChart("Hodiny podľa stavby", bySite)}</div></div>`;
-}
-
-function renderBarChart(title, dataObj){
-  const entries = Object.entries(dataObj).sort((a,b)=>b[1]-a[1]);
-  const max = Math.max(1, ...entries.map(e=>e[1]));
-  return `<div class="kpi"><b>📊 ${title}</b>${entries.map(([name,min]) => `<div style="margin-top:10px"><span>${name}</span><span style="float:right"><b>${formatMinutes(min)}</b></span><div class="chartBar" style="width:${Math.max(3, Math.round((min/max)*100))}%"></div></div>`).join("")}</div>`;
+  box.innerHTML = "📍 Automatika bola zapnutá skôr. Spúšťam GPS automaticky...";
+  setTimeout(() => startAutoAttendance(true), 800);
 }
 
 async function clearRecords(){
@@ -1860,6 +1738,26 @@ async function clearRecords(){
   await batch.commit();
 }
 
+
+document.addEventListener("visibilitychange", () => {
+  if(document.visibilityState === "visible" && localStorage.getItem("smurfex_auto_enabled") === "1"){
+    requestWakeLock();
+    startAutoAttendance(true);
+  }
+});
+
+window.addEventListener("focus", () => {
+  if(localStorage.getItem("smurfex_auto_enabled") === "1"){
+    startAutoAttendance(true);
+  }
+});
+
+setInterval(() => {
+  if(localStorage.getItem("smurfex_auto_enabled") === "1" && autoWatchId === null){
+    startAutoAttendance(true);
+  }
+}, 60000);
+
 if("serviceWorker" in navigator){
   navigator.serviceWorker.register("sw.js");
 }
@@ -1870,5 +1768,4 @@ fillRequestTypeTexts();
 setLang(lang);
 renderAutoControls();
 resumeAutoAttendanceIfEnabled();
-setupDiaryForm();
 renderAdminState();
