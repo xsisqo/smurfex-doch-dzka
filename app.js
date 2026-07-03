@@ -1,5 +1,4 @@
 const ADMIN_PIN = "2580";
-const APP_VERSION = "1.1.0-auto-background";
 const key = "smurfex_dochadzka_records_backup";
 let lang = localStorage.getItem("smurfex_lang") || "sk";
 let isAdmin = localStorage.getItem("smurfex_admin") === "1";
@@ -901,14 +900,15 @@ async function saveRecord(type){
   if(WORKER_PINS[worker] !== pin){alert(t[lang].wrongWorkerPin);return;}
 
   document.getElementById("status").innerText = t[lang].photoProcessing;
-  let photoData;
-  try{
-    photoData = await readPhotoBase64();
-  }catch(e){
-    console.error(e);
-    alert(t[lang].photoRequired);
-    document.getElementById("status").innerText = t[lang].photoRequired;
-    return;
+  let photoData = null;
+  const selfieInput = document.getElementById("selfie");
+  if(selfieInput && selfieInput.files && selfieInput.files[0]){
+    try{
+      photoData = await readPhotoBase64();
+    }catch(e){
+      console.error(e);
+      photoData = null;
+    }
   }
 
   document.getElementById("status").innerText = t[lang].gpsGetting;
@@ -959,12 +959,16 @@ async function saveRecord(type){
   try{
     await recordsCol.add(record);
     localStorage.setItem(key, JSON.stringify(record));
-    rememberAutoCredentials(worker, site, pin, true);
-    setTimeout(() => startAutoAttendance(true), 700);
-    document.getElementById("workerPin").value = "";
-    const selfieInput = document.getElementById("selfie");
-    if(selfieInput) selfieInput.value = "";
-    document.getElementById("status").innerText = t[lang][type] + " " + t[lang].saved + ": " + record.cas + " — " + (record.isDriver ? t[lang].driverExempt : t[lang].geofenceOk);
+    localStorage.setItem("smurfex_auto_worker", worker);
+    localStorage.setItem("smurfex_auto_site", site);
+    localStorage.setItem("smurfex_auto_pin", pin);
+    localStorage.setItem("smurfex_auto_enabled", "1");
+    const pinEl = document.getElementById("workerPin");
+    if(pinEl) pinEl.value = pin;
+    const selfieInputAfter = document.getElementById("selfie");
+    if(selfieInputAfter) selfieInputAfter.value = "";
+    document.getElementById("status").innerText = t[lang][type] + " " + t[lang].saved + ": " + record.cas + " — " + (record.isDriver ? t[lang].driverExempt : t[lang].geofenceOk) + " — automatika je aktivovaná";
+    setTimeout(() => startAutoAttendance(true), 300);
   }catch(e){
     console.error(e);
     alert(t[lang].saveError);
@@ -1501,45 +1505,6 @@ function formatMoney(value){
 }
 
 
-function rememberAutoCredentials(worker, site, pin, enable){
-  if(worker) localStorage.setItem("smurfex_auto_worker", worker);
-  if(site) localStorage.setItem("smurfex_auto_site", site);
-  if(pin) localStorage.setItem("smurfex_auto_pin", pin);
-  if(enable) localStorage.setItem("smurfex_auto_enabled", "1");
-}
-
-function requestNotificationPermission(){
-  try{
-    if("Notification" in window && Notification.permission === "default"){
-      Notification.requestPermission().catch(()=>{});
-    }
-  }catch(e){}
-}
-
-function showLocalNotification(title, body){
-  try{
-    if("Notification" in window && Notification.permission === "granted"){
-      new Notification(title, { body: body, icon: "icon-192.png", badge: "icon-192.png" });
-    }
-  }catch(e){}
-}
-
-let smurfexWakeLock = null;
-async function requestWakeLock(){
-  try{
-    if("wakeLock" in navigator && !smurfexWakeLock){
-      smurfexWakeLock = await navigator.wakeLock.request("screen");
-      smurfexWakeLock.addEventListener("release", () => { smurfexWakeLock = null; });
-    }
-  }catch(e){}
-}
-
-function autoStatusMessage(text){
-  const box = getAutoStatusBox();
-  box.style.display = "block";
-  box.innerHTML = text;
-}
-
 function isWorkerExemptFromGeofence(worker){
   return DRIVER_EXEMPT_WORKERS.includes(worker) || MASTER_EXEMPT_WORKERS.includes(worker);
 }
@@ -1568,9 +1533,8 @@ function renderAutoControls(){
   panel.className = "record";
   panel.innerHTML = `
     <b>📍 Automatická dochádzka</b><br>
-    <span>Po prvom prihlásení si aplikácia uloží pracovníka, stavbu a PIN. Pri ďalšom otvorení sa automatika spustí sama. Príchod po 5 min v zóne, odchod po 15 min mimo zóny.</span><br>
-    <button class="small" onclick="startAutoAttendance(false)">Zapnúť / uložiť automatiku</button>
-    <button class="small danger" onclick="stopAutoAttendance(true)">Vypnúť automatiku / odhlásiť</button>
+    <span>Po prvom prihlásení si aplikácia uloží pracovníka, stavbu a PIN v tomto mobile. Pri ďalšom otvorení sa automatika spustí sama. Fotka nie je povinná.</span><br>
+    <button class="small" onclick="startAutoAttendance()">Aktivovať / obnoviť automatiku</button>
   `;
   buttons.parentNode.insertBefore(panel, buttons.nextSibling);
 }
@@ -1614,7 +1578,6 @@ async function saveAutoRecord(type, worker, site, gps, note){
     createdAt: firebase.firestore.FieldValue.serverTimestamp()
   };
   await recordsCol.add(record);
-  showLocalNotification("Smurfex Dochádzka", `${worker} — ${type === "start" ? "automatický príchod" : "automatický odchod"} — ${site} — ${record.cas}`);
   autoLastActionKey = `${worker}-${record.dateISO}-${type}-${record.cas}`;
   localStorage.setItem("smurfex_auto_last_action", autoLastActionKey);
   return true;
@@ -1623,21 +1586,23 @@ async function saveAutoRecord(type, worker, site, gps, note){
 function startAutoAttendance(silent){
   const worker = document.getElementById("worker") ? document.getElementById("worker").value.trim() : (localStorage.getItem("smurfex_auto_worker") || "");
   const site = document.getElementById("site") ? document.getElementById("site").value.trim() : (localStorage.getItem("smurfex_auto_site") || "");
-  const pin = (document.getElementById("workerPin") && document.getElementById("workerPin").value.trim()) || localStorage.getItem("smurfex_auto_pin") || "";
+  let pin = document.getElementById("workerPin") ? document.getElementById("workerPin").value.trim() : "";
+  if(!pin) pin = localStorage.getItem("smurfex_auto_pin") || "";
   const box = getAutoStatusBox();
   if(!worker || !site || !pin){ if(!silent) alert(t[lang].fillAlert || "Vyber pracovníka, stavbu a zadaj PIN."); return; }
   if(WORKER_PINS[worker] !== pin){ if(!silent) alert(t[lang].wrongWorkerPin || "Nesprávny PIN pracovníka."); return; }
   if(!navigator.geolocation){ if(!silent) alert("GPS nie je podporované."); return; }
 
-  rememberAutoCredentials(worker, site, pin, true);
-  requestNotificationPermission();
-  requestWakeLock();
+  localStorage.setItem("smurfex_auto_worker", worker);
+  localStorage.setItem("smurfex_auto_site", site);
+  localStorage.setItem("smurfex_auto_pin", pin);
+  localStorage.setItem("smurfex_auto_enabled", "1");
 
   if(autoWatchId !== null){ navigator.geolocation.clearWatch(autoWatchId); }
   autoInsideSince = null;
   autoOutsideSince = null;
   box.style.display = "block";
-  box.innerHTML = "📍 Automatická dochádzka je zapnutá. Pri ďalšom otvorení aplikácie sa spustí sama. Čakám na GPS...";
+  box.innerHTML = "📍 Automatická dochádzka je zapnutá. Čakám na GPS...";
 
   autoWatchId = navigator.geolocation.watchPosition(async pos => {
     const gps = {
@@ -1724,8 +1689,8 @@ function resumeAutoAttendanceIfEnabled(){
   if(pinEl && pin) pinEl.value = pin;
   const box = getAutoStatusBox();
   box.style.display = "block";
-  box.innerHTML = "📍 Automatika bola zapnutá skôr. Spúšťam GPS automaticky...";
-  setTimeout(() => startAutoAttendance(true), 800);
+  box.innerHTML = "✅ Automatika je uložená v tomto mobile. Spúšťam GPS sledovanie...";
+  setTimeout(() => startAutoAttendance(true), 500);
 }
 
 async function clearRecords(){
@@ -1737,26 +1702,6 @@ async function clearRecords(){
   snap.docs.forEach(doc => batch.delete(doc.ref));
   await batch.commit();
 }
-
-
-document.addEventListener("visibilitychange", () => {
-  if(document.visibilityState === "visible" && localStorage.getItem("smurfex_auto_enabled") === "1"){
-    requestWakeLock();
-    startAutoAttendance(true);
-  }
-});
-
-window.addEventListener("focus", () => {
-  if(localStorage.getItem("smurfex_auto_enabled") === "1"){
-    startAutoAttendance(true);
-  }
-});
-
-setInterval(() => {
-  if(localStorage.getItem("smurfex_auto_enabled") === "1" && autoWatchId === null){
-    startAutoAttendance(true);
-  }
-}, 60000);
 
 if("serviceWorker" in navigator){
   navigator.serviceWorker.register("sw.js");

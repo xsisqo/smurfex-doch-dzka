@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Smurfex Dochádzka PRO v1.1.0</title>
+  <title>Smurfex Dochádzka / Attendance</title>
   <meta name="theme-color" content="#56b9e8">
   <link rel="manifest" href="manifest.json">
   <link rel="icon" href="icon-192.png">
@@ -54,7 +54,7 @@
 
       <label data-i18n="photoLabel">Fotka pracovníka</label>
       <input id="selfie" type="file" accept="image/*" capture="user">
-      <p class="sub" data-i18n="photoHint">Pred uložením sprav fotku pracovníka.</p>
+      <p class="sub" data-i18n="photoHint">Fotka je voliteľná. Automatika sa po prvom prihlásení uloží v mobile.</p>
 
       <div class="buttons">
         <button class="start" onclick="saveRecord('start')" data-i18n="startBtn">PRIŠIEL SOM</button>
@@ -175,6 +175,6 @@
 
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
-  <script src="app.js?v=mzdy-obedy-soferi-2"></script>
+  <script src="app.js?v=auto-stale-po-prvom-prihlaseni-v2"></script>
 </body>
 </html>
