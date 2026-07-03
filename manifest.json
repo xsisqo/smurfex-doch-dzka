@@ -1,10 +1,11 @@
 {
-  "name": "Smurfex Dochádzka / Attendance",
+  "name": "Smurfex Dochádzka",
   "short_name": "Smurfex",
   "start_url": "./index.html",
+  "scope": "./",
   "display": "standalone",
   "background_color": "#ffffff",
-  "theme_color": "#56b9e8",
+  "theme_color": "#6ec7ee",
   "icons": [
     {
       "src": "icon-192.png",

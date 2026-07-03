@@ -3,56 +3,45 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Smurfex Dochádzka / Attendance</title>
-  <meta name="theme-color" content="#56b9e8">
+  <title>Smurfex Dochádzka</title>
+  <meta name="theme-color" content="#6ec7ee">
   <link rel="manifest" href="manifest.json">
   <link rel="icon" href="icon-192.png">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <main class="app">
-    <section class="card">
+    <section class="top-card">
       <img src="logo.png" class="logo" alt="Smurfex s.r.o.">
-
-      <div class="lang">
-        <button class="langBtn active" onclick="setLang('sk')" id="btn-sk">SK</button>
-        <button class="langBtn" onclick="setLang('en')" id="btn-en">EN</button>
+      <div class="language">
+        <button id="btn-sk" onclick="setLang('sk')">SK</button>
+        <button id="btn-en" onclick="setLang('en')">EN</button>
       </div>
-
       <h1 data-i18n="title">Dochádzka</h1>
-      <p class="sub" data-i18n="subtitle">Jednoduchá evidencia príchodu a odchodu</p>
-
-      <label data-i18n="workerLabel">Meno pracovníka</label>
-      <input id="worker" data-i18n-placeholder="workerPlaceholder" placeholder="napr. Ján Novák">
-
-      <label data-i18n="siteLabel">Stavba</label>
-      <input id="site" data-i18n-placeholder="sitePlaceholder" placeholder="napr. STRABAG / Nitra">
-
-      <div class="buttons">
-        <button class="start" onclick="saveRecord('start')" data-i18n="startBtn">PRIŠIEL SOM</button>
-        <button class="end" onclick="saveRecord('end')" data-i18n="endBtn">ODCHÁDZAM</button>
-      </div>
-
-      <p id="status"></p>
+      <p data-i18n="subtitle" class="subtitle">Jednoduchá evidencia pre pracovníkov</p>
     </section>
 
     <section class="card">
-      <h2 data-i18n="todayTitle">Dnešné záznamy</h2>
-      <div id="records"></div>
-
-      <div id="admin-login">
-        <button class="small" onclick="adminLogin()" data-i18n="adminBtn">Admin</button>
+      <label data-i18n="worker">Meno pracovníka</label>
+      <input id="worker" autocomplete="name" data-i18n-placeholder="workerPh" placeholder="napr. Ján Novák">
+      <label data-i18n="site">Stavba</label>
+      <input id="site" data-i18n-placeholder="sitePh" placeholder="napr. STRABAG / Nitra">
+      <div class="actions">
+        <button class="arrival" onclick="saveRecord('arrival')" data-i18n="arrival">PRIŠIEL SOM</button>
+        <button class="departure" onclick="saveRecord('departure')" data-i18n="departure">ODCHÁDZAM</button>
       </div>
+      <p id="message"></p>
+    </section>
 
-      <div id="admin-panel" style="display:none;">
-        <p><b data-i18n="adminMode">Administrátor</b></p>
-        <button class="small" onclick="exportCSV()" data-i18n="exportBtn">Export CSV</button>
-        <button class="small danger" onclick="clearRecords()" data-i18n="clearBtn">Vymazať záznamy</button>
-        <button class="small" onclick="adminLogout()" data-i18n="logoutBtn">Odhlásiť admina</button>
+    <section class="card">
+      <h2 data-i18n="records">Záznamy v tomto mobile</h2>
+      <div id="recordsList"></div>
+      <div class="bottom-actions">
+        <button class="export" onclick="exportCSV()" data-i18n="export">Export CSV</button>
+        <button class="delete" onclick="clearRecords()" data-i18n="clear">Vymazať</button>
       </div>
     </section>
   </main>
-
   <script src="app.js"></script>
 </body>
 </html>
