@@ -72,15 +72,9 @@ function saveLunchMinutesToStorage(lunch){
   localStorage.setItem("smurfex_lunch_minutes", JSON.stringify(lunch));
 }
 
-const SITES = [
-  "STRABAG letisko",
-  "STRABAG nemocnica"
-];
-
-const SITE_COORDS = {
-  "STRABAG letisko": { lat: 48.6379611, lng: 19.1356756 },
-  "STRABAG nemocnica": { lat: 48.744191282, lng: 19.119472504 }
-};
+const SITES = ["Ďumbierska"];
+const ARCHIVED_SITES = ["STRABAG letisko", "STRABAG nemocnica"];
+const SITE_COORDS = {};
 
 const GEOFENCE_RADIUS_METERS = 3000;
 const AUTO_CHECKIN_DELAY_MS = 5 * 60 * 1000;
@@ -138,7 +132,7 @@ const t = {
     siteLabel:"Stavba",
     sitePlaceholder:"Vyber stavbu",
     photoLabel:"Fotka pracovníka",
-    photoHint:"Pred uložením sprav fotku pracovníka.",
+    photoHint:"Fotka je nepovinná.",
     photoRequired:"Fotka pracovníka je povinná.",
     photoProcessing:"Spracúvam fotku...",
     photo:"Fotka",
@@ -173,6 +167,21 @@ const t = {
     saveError:"Chyba uloženia. Skontroluj internet alebo Firestore pravidlá.",
     gpsGetting:"Získavam GPS polohu...",
     gpsError:"GPS poloha je povinná. Povoľ polohu v prehliadači a skús znova.",
+    diaryTitle:"Interný stavebný denník",
+    diaryLogin:"Prihlásiť sa cez Google",
+    diaryLogout:"Odhlásiť sa z denníka",
+    diaryWork:"Vykonané práce",
+    diaryExtras:"Práce navyše",
+    diaryExtrasHint:"Uveď popis, množstvo, jednotku a kto práce objednal.",
+    diarySave:"Uložiť zápis",
+    diaryEmpty:"Vyplň vykonané práce alebo práce navyše.",
+    diarySaved:"Zápis uložený.",
+    diarySaveError:"Zápis sa nepodarilo uložiť.",
+    diaryDenied:"Prístup do denníka musí povoliť firma.",
+    diaryLoadError:"Denník sa nepodarilo načítať.",
+    diaryAuthError:"Prihlásenie sa nepodarilo.",
+    diaryNoEntries:"Zatiaľ bez zápisov.",
+    siteLocationMissing:"Poloha tejto stavby ešte nie je nastavená.",
     geofenceError:"Nachádzate sa mimo povoleného okruhu stavby. Dochádzku je možné zapísať iba priamo na stavbe.",
     geofenceDistance:"Vzdialenosť od stavby",
     geofenceOk:"Poloha je v povolenom okruhu stavby.",
@@ -269,7 +278,7 @@ const t = {
     siteLabel:"Construction site",
     sitePlaceholder:"Select site",
     photoLabel:"Worker photo",
-    photoHint:"Take a worker photo before saving.",
+    photoHint:"The photo is optional.",
     photoRequired:"Worker photo is required.",
     photoProcessing:"Processing photo...",
     photo:"Photo",
@@ -304,6 +313,21 @@ const t = {
     saveError:"Save error. Check internet or Firestore rules.",
     gpsGetting:"Getting GPS location...",
     gpsError:"GPS location is required. Allow location in the browser and try again.",
+    diaryTitle:"Internal site diary",
+    diaryLogin:"Sign in with Google",
+    diaryLogout:"Sign out of diary",
+    diaryWork:"Work completed",
+    diaryExtras:"Extra work",
+    diaryExtrasHint:"Include the description, quantity, unit and who requested the work.",
+    diarySave:"Save entry",
+    diaryEmpty:"Enter completed work or extra work.",
+    diarySaved:"Entry saved.",
+    diarySaveError:"Could not save entry.",
+    diaryDenied:"Your company must grant diary access.",
+    diaryLoadError:"Could not load the diary.",
+    diaryAuthError:"Could not sign in.",
+    diaryNoEntries:"No entries yet.",
+    siteLocationMissing:"The location of this site has not been configured.",
     geofenceError:"You are outside the allowed site radius. Attendance can only be recorded directly at the construction site.",
     geofenceDistance:"Distance from site",
     geofenceOk:"Location is within the allowed site radius.",
@@ -401,7 +425,7 @@ const t = {
     siteLabel:"निर्माण स्थल",
     sitePlaceholder:"साइट चुनें",
     photoLabel:"कर्मचारी की फोटो",
-    photoHint:"सेव करने से पहले कर्मचारी की फोटो लें।",
+    photoHint:"फ़ोटो वैकल्पिक है।",
     photoRequired:"कर्मचारी की फोटो आवश्यक है।",
     photoProcessing:"फोटो प्रोसेस हो रही है...",
     photo:"फोटो",
@@ -436,6 +460,21 @@ const t = {
     saveError:"सेव करने में त्रुटि। इंटरनेट या Firestore नियम जांचें।",
     gpsGetting:"GPS लोकेशन ली जा रही है...",
     gpsError:"GPS लोकेशन आवश्यक है। ब्राउज़र में लोकेशन अनुमति दें और फिर कोशिश करें।",
+    diaryTitle:"आंतरिक निर्माण डायरी",
+    diaryLogin:"Google से साइन इन करें",
+    diaryLogout:"डायरी से साइन आउट करें",
+    diaryWork:"पूरा किया गया काम",
+    diaryExtras:"अतिरिक्त काम",
+    diaryExtrasHint:"विवरण, मात्रा, इकाई और काम का आदेश देने वाले का नाम लिखें।",
+    diarySave:"प्रविष्टि सहेजें",
+    diaryEmpty:"पूरा या अतिरिक्त काम दर्ज करें।",
+    diarySaved:"प्रविष्टि सहेजी गई।",
+    diarySaveError:"प्रविष्टि सहेजी नहीं जा सकी।",
+    diaryDenied:"डायरी का एक्सेस कंपनी से लेना होगा।",
+    diaryLoadError:"डायरी लोड नहीं हो सकी।",
+    diaryAuthError:"साइन इन नहीं हो सका।",
+    diaryNoEntries:"अभी कोई प्रविष्टि नहीं है।",
+    siteLocationMissing:"इस साइट का स्थान अभी सेट नहीं किया गया है।",
     geofenceError:"आप साइट की अनुमति सीमा से बाहर हैं। उपस्थिति केवल निर्माण स्थल पर ही दर्ज की जा सकती है।",
     geofenceDistance:"साइट से दूरी",
     geofenceOk:"लोकेशन साइट की अनुमति सीमा में है।",
@@ -563,7 +602,7 @@ function fillSelects(){
   if(filterSite){
     const selected = filterSite.value;
     filterSite.innerHTML = `<option value="">${t[lang].filterAllTypes}</option>` +
-      SITES.map(site => `<option value="${site}">${site}</option>`).join("");
+      [...SITES, ...ARCHIVED_SITES].map(site => `<option value="${site}">${site}</option>`).join("");
     if(selected) filterSite.value = selected;
   }
 
@@ -622,6 +661,7 @@ function setLang(l){
   renderMonthlyReport(false);
   renderWorkerCalendar(false);
   renderWageSettings();
+  document.dispatchEvent(new Event("smurfex-language-change"));
 }
 
 function renderAdminState(){
@@ -898,6 +938,11 @@ async function saveRecord(type){
   const pin = document.getElementById("workerPin") ? document.getElementById("workerPin").value.trim() : "";
   if(!worker || !site || !pin){alert(t[lang].fillAlert);return;}
   if(WORKER_PINS[worker] !== pin){alert(t[lang].wrongWorkerPin);return;}
+  if(!SITES.includes(site)) return;
+  if(!SITE_COORDS[site] && !isWorkerExemptFromGeofence(worker)){
+    document.getElementById("status").innerText = t[lang].siteLocationMissing;
+    return;
+  }
 
   document.getElementById("status").innerText = t[lang].photoProcessing;
   let photoData = null;
@@ -967,7 +1012,7 @@ async function saveRecord(type){
     if(pinEl) pinEl.value = pin;
     const selfieInputAfter = document.getElementById("selfie");
     if(selfieInputAfter) selfieInputAfter.value = "";
-    document.getElementById("status").innerText = t[lang][type] + " " + t[lang].saved + ": " + record.cas + " — " + (record.isDriver ? t[lang].driverExempt : t[lang].geofenceOk) + " — automatika je aktivovaná";
+    document.getElementById("status").innerText = t[lang][type] + " " + t[lang].saved + ": " + record.cas + " — " + (record.isDriver ? t[lang].driverExempt : t[lang].geofenceOk) + (SITE_COORDS[site] ? " — automatika je aktivovaná" : "");
     setTimeout(() => startAutoAttendance(true), 300);
   }catch(e){
     console.error(e);
@@ -1591,6 +1636,11 @@ function startAutoAttendance(silent){
   const box = getAutoStatusBox();
   if(!worker || !site || !pin){ if(!silent) alert(t[lang].fillAlert || "Vyber pracovníka, stavbu a zadaj PIN."); return; }
   if(WORKER_PINS[worker] !== pin){ if(!silent) alert(t[lang].wrongWorkerPin || "Nesprávny PIN pracovníka."); return; }
+  if(!SITES.includes(site)) return;
+  if(!SITE_COORDS[site]){
+    if(!silent) alert(t[lang].siteLocationMissing);
+    return;
+  }
   if(!navigator.geolocation){ if(!silent) alert("GPS nie je podporované."); return; }
 
   localStorage.setItem("smurfex_auto_worker", worker);
@@ -1680,6 +1730,13 @@ function resumeAutoAttendanceIfEnabled(){
   if(!enabled) return;
   const worker = localStorage.getItem("smurfex_auto_worker");
   const site = localStorage.getItem("smurfex_auto_site");
+  if(!SITES.includes(site)){
+    for(const key of ["enabled", "worker", "site", "pin"]){
+      localStorage.removeItem("smurfex_auto_" + key);
+    }
+    return;
+  }
+  if(!SITE_COORDS[site]) return;
   const pin = localStorage.getItem("smurfex_auto_pin") || "";
   const workerEl = document.getElementById("worker");
   const siteEl = document.getElementById("site");
