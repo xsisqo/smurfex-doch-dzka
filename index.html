@@ -65,6 +65,50 @@
       <p id="syncStatus" class="sub"></p>
     </section>
 
+    <section class="card" id="siteDiary">
+      <h2 data-i18n="diaryTitle">Interný stavebný denník</h2>
+      <button type="button" class="small" id="diaryLogin" data-i18n="diaryLogin">Prihlásiť sa cez Google</button>
+      <button type="button" class="small" id="diaryLogout" data-i18n="diaryLogout" hidden>Odhlásiť sa z denníka</button>
+      <form id="diaryForm" hidden>
+        <label for="diarySite" data-i18n="siteLabel">Stavba</label>
+        <select id="diarySite" name="site" required></select>
+
+        <label for="diaryDate" data-i18n="filterDate">Dátum</label>
+        <input id="diaryDate" name="date" type="date" required>
+
+        <label for="diaryWork" data-i18n="diaryWork">Vykonané práce</label>
+        <textarea id="diaryWork" name="work" maxlength="5000" required></textarea>
+
+        <button class="small" type="submit" data-i18n="diarySave">Uložiť zápis</button>
+      </form>
+      <p id="diaryStatus" class="sub" role="status"></p>
+      <div id="diaryEntries"></div>
+
+      <section id="extraWorks" hidden>
+        <h3 data-i18n="extraWorksTitle">Súpis prác navyše</h3>
+        <form id="extraWorksForm">
+          <label for="extraSite" data-i18n="siteLabel">Stavba</label>
+          <select id="extraSite" name="site" required></select>
+
+          <label for="extraDescription" data-i18n="extraDescription">Popis prác navyše</label>
+          <textarea id="extraDescription" name="description" maxlength="5000" required></textarea>
+
+          <label for="extraQuantity" data-i18n="extraQuantity">Množstvo</label>
+          <input id="extraQuantity" name="quantity" type="number" min="0" step="any">
+
+          <label for="extraUnit" data-i18n="extraUnit">Jednotka (napr. m², m³, ks, h)</label>
+          <input id="extraUnit" name="unit" maxlength="30">
+
+          <label for="extraRequestedBy" data-i18n="extraRequestedBy">Kto práce objednal</label>
+          <input id="extraRequestedBy" name="requestedBy" maxlength="200">
+
+          <button class="small" type="submit" data-i18n="diarySave">Uložiť zápis</button>
+        </form>
+        <div id="extraWorksEntries"></div>
+      </section>
+      <p id="extraWorksStatus" class="sub" role="status"></p>
+    </section>
+
     <section class="card">
       <h2 data-i18n="weatherTitle">Počasie na stavbe</h2>
       <div id="weatherBox"><p data-i18n="weatherHint">Vyber stavbu a zobrazí sa aktuálne počasie.</p></div>
@@ -175,6 +219,8 @@
 
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
-  <script src="app.js?v=auto-stale-po-prvom-prihlaseni-v2"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
+  <script src="app.js?v=site-diary-2"></script>
+  <script src="site-diary.js?v=2"></script>
 </body>
 </html>
