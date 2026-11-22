@@ -17,7 +17,7 @@ vytvorte cez Firebase Console dokument siteDiaryMembers/<Firebase Auth UID>.
 Doplňte nižšie uvedené pravidlá do existujúceho match /databases/{database}/documents.
 Pravidlá records a requests ponechajte. Pred publikovaním odstráňte alebo zúžte
 každé všeobecné povoľovacie pravidlo, ktoré by sa vzťahovalo aj na siteDiaries
-alebo siteDiaryMembers. Firestore povoľovacie pravidlá sa vyhodnocujú cez OR.
+siteExtraWorks alebo siteDiaryMembers. Firestore povoľovacie pravidlá sa vyhodnocujú cez OR.
 
     function hasDiaryAccess() {
       return request.auth != null
@@ -42,6 +42,29 @@ alebo siteDiaryMembers. Firestore povoľovacie pravidlá sa vyhodnocujú cez OR.
         && request.resource.data.work.size() <= 5000
         && request.resource.data.extras.size() <= 5000
         && (request.resource.data.work.size() > 0 || request.resource.data.extras.size() > 0)
+        && request.resource.data.authorUid == request.auth.uid
+        && request.resource.data.authorName is string
+        && request.resource.data.authorName.size() <= 200
+        && request.resource.data.createdAt == request.time;
+    }
+
+    match /siteExtraWorks/{entry} {
+      allow read: if hasDiaryAccess();
+      allow create: if hasDiaryAccess()
+        && request.resource.data.keys().hasAll(['site', 'description', 'quantity', 'unit', 'requestedBy', 'authorUid', 'authorName', 'createdAt'])
+        && request.resource.data.keys().hasOnly(['site', 'description', 'quantity', 'unit', 'requestedBy', 'authorUid', 'authorName', 'createdAt'])
+        && request.resource.data.site in ['Ďumbierska', 'ZUŠ Jána Cikkera']
+        && request.resource.data.description is string
+        && request.resource.data.description.size() > 0
+        && request.resource.data.description.size() <= 5000
+        && request.resource.data.unit is string
+        && request.resource.data.unit.size() <= 30
+        && ((request.resource.data.quantity == null && request.resource.data.unit == '')
+          || (request.resource.data.quantity is number && request.resource.data.quantity > 0
+            && request.resource.data.quantity <= 1.7976931348623157e308
+            && request.resource.data.unit.size() > 0))
+        && request.resource.data.requestedBy is string
+        && request.resource.data.requestedBy.size() <= 200
         && request.resource.data.authorUid == request.auth.uid
         && request.resource.data.authorName is string
         && request.resource.data.authorName.size() <= 200
