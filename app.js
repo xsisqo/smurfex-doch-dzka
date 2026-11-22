@@ -75,6 +75,7 @@ function saveLunchMinutesToStorage(lunch){
 const SITES = ["Ďumbierska", "ZUŠ Jána Cikkera"];
 const ARCHIVED_SITES = ["STRABAG letisko", "STRABAG nemocnica"];
 const SITE_COORDS = {
+  "Ďumbierska": { lat: 48.752453, lng: 19.158914 },
   "ZUŠ Jána Cikkera": { lat: 48.733099, lng: 19.148786 }
 };
 
