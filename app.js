@@ -72,7 +72,7 @@ function saveLunchMinutesToStorage(lunch){
   localStorage.setItem("smurfex_lunch_minutes", JSON.stringify(lunch));
 }
 
-const SITES = ["Ďumbierska"];
+const SITES = ["Ďumbierska", "ZUŠ Jána Cikkera"];
 const ARCHIVED_SITES = ["STRABAG letisko", "STRABAG nemocnica"];
 const SITE_COORDS = {};
 

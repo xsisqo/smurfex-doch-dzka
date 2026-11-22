@@ -34,7 +34,7 @@ alebo siteDiaryMembers. Firestore povoľovacie pravidlá sa vyhodnocujú cez OR.
       allow create: if hasDiaryAccess()
         && request.resource.data.keys().hasAll(['site', 'date', 'work', 'extras', 'authorUid', 'authorName', 'createdAt'])
         && request.resource.data.keys().hasOnly(['site', 'date', 'work', 'extras', 'authorUid', 'authorName', 'createdAt'])
-        && request.resource.data.site == 'Ďumbierska'
+        && request.resource.data.site in ['Ďumbierska', 'ZUŠ Jána Cikkera']
         && request.resource.data.date is string
         && request.resource.data.date.matches('[0-9]{4}-[0-9]{2}-[0-9]{2}')
         && request.resource.data.work is string
